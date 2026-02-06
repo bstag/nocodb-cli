@@ -29,7 +29,7 @@
 - **Filters** — `filters list/get/create/update/delete`
 - **Sorts** — `sorts list/get/create/update/delete`
 - **Columns** — `columns list/get/create/update/delete` (with JSON schema validation)
-- **Rows** — `rows list/read/create/update/delete/upsert` (with schema validation)
+- **Rows** — `rows list/read/create/update/delete/upsert/bulk-create/bulk-update/bulk-upsert/bulk-delete` (with schema validation)
 - **Storage** — `storage upload <filePath>`
 - **Meta** — `meta swagger/endpoints/cache clear`
 - **Dynamic API** — `--base <id> api <tag> <operation>` auto-generated from Swagger
