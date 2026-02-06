@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Command } from 'commander';
-import { bootstrap } from '../src/index.js';
-import { NocoClient } from '@nocodb/sdk';
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NocoClient } from "@nocodb/sdk";
 
-vi.mock('@nocodb/sdk', () => {
+vi.mock("@nocodb/sdk", () => {
   const request = vi.fn();
   return {
     NocoClient: vi.fn().mockImplementation(() => ({
@@ -12,9 +13,9 @@ vi.mock('@nocodb/sdk', () => {
     MetaApi: vi.fn().mockImplementation(() => ({
       getBaseSwagger: vi.fn().mockResolvedValue({
         paths: {
-          '/api/v2/tables/table1/records': {
-            post: { operationId: 'create' },
-            patch: { operationId: 'update' },
+          "/api/v2/tables/table1/records": {
+            post: { operationId: "create" },
+            patch: { operationId: "update" },
           },
         },
       }),
@@ -22,89 +23,115 @@ vi.mock('@nocodb/sdk', () => {
   };
 });
 
-describe('rows bulk-upsert command', () => {
-  let client: any;
+async function runCli(args: string[], configDir: string) {
+  process.env.NOCO_CONFIG_DIR = configDir;
+  process.argv = ["node", "nocodb", ...args];
+  vi.resetModules();
+  const mod = await import("../src/index.js");
+  await mod.bootstrap();
+}
 
-  beforeEach(() => {
+describe("rows bulk-upsert command", () => {
+  let client: { request: ReturnType<typeof vi.fn> };
+  let configDir: string;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    client = new NocoClient({ baseUrl: 'http://localhost', headers: {} });
-    // @ts-ignore
-    NocoClient.mockImplementation(() => client);
+    client = { request: vi.fn() };
+    vi.mocked(NocoClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => client as never);
+
+    configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-bulk-upsert-"));
+    process.env.NOCO_QUIET = "1";
+    await runCli(["config", "set", "baseUrl", "http://localhost"], configDir);
   });
 
-  it('handles multi-page existing rows and creates/updates correctly', async () => {
-    // Page 1: 2 rows
+  afterEach(() => {
+    delete process.env.NOCO_CONFIG_DIR;
+    delete process.env.NOCO_QUIET;
+    process.exitCode = 0;
+    try {
+      fs.rmSync(configDir, { recursive: true, force: true });
+    } catch {
+      // ignore cleanup errors
+    }
+  });
+
+  it("handles existing rows and creates/updates correctly", async () => {
     client.request.mockResolvedValueOnce({
       list: [
-        { Id: 1, Email: 'a@ex.com', Name: 'A' },
-        { Id: 2, Email: 'b@ex.com', Name: 'B' },
+        { Id: 1, Email: "a@ex.com", Name: "A" },
+        { Id: 2, Email: "b@ex.com", Name: "B" },
       ],
-      pageInfo: { totalRows: 2 }
+      pageInfo: { totalRows: 2 },
     });
-    
-    // Create Response
     client.request.mockResolvedValueOnce({ created: true });
-    // Update Response
     client.request.mockResolvedValueOnce({ updated: true });
 
     const incoming = [
-      { Email: 'a@ex.com', Name: 'A-updated' }, // update
-      { Email: 'c@ex.com', Name: 'C-new' },     // create
+      { Email: "a@ex.com", Name: "A-updated" },
+      { Email: "c@ex.com", Name: "C-new" },
     ];
 
-    const program = new Command();
-    process.argv = [
-      'node', 'index.js', 'rows', 'bulk-upsert', 'table1',
-      '--match', 'Email',
-      '--data', JSON.stringify(incoming)
-    ];
+    await runCli(
+      [
+        "--base",
+        "b1",
+        "rows",
+        "bulk-upsert",
+        "table1",
+        "--match",
+        "Email",
+        "--data",
+        JSON.stringify(incoming),
+      ],
+      configDir,
+    );
 
-    await bootstrap();
-
-    // 1. GET Page 1 (returns totalRows: 2, matching existingRows.length, so it breaks)
-    // 2. POST for C
-    // 3. PATCH for A (with Id: 1)
     expect(client.request).toHaveBeenCalledTimes(3);
-    
-    // Check create payload
-    expect(client.request).toHaveBeenCalledWith('POST', expect.stringContaining('records'), expect.objectContaining({
-      body: [{ Email: 'c@ex.com', Name: 'C-new' }]
-    }));
-
-    // Check update payload
-    expect(client.request).toHaveBeenCalledWith('PATCH', expect.stringContaining('records'), expect.objectContaining({
-      body: [{ Email: 'a@ex.com', Name: 'A-updated', Id: 1 }]
-    }));
+    expect(client.request).toHaveBeenCalledWith(
+      "POST",
+      expect.stringContaining("records"),
+      expect.objectContaining({
+        body: [{ Email: "c@ex.com", Name: "C-new" }],
+      }),
+    );
+    expect(client.request).toHaveBeenCalledWith(
+      "PATCH",
+      expect.stringContaining("records"),
+      expect.objectContaining({
+        body: [{ Email: "a@ex.com", Name: "A-updated", Id: 1 }],
+      }),
+    );
   });
 
-  it('fails on non-unique matches', async () => {
+  it("fails on non-unique matches", async () => {
     client.request.mockResolvedValueOnce({
       list: [
-        { Id: 1, Email: 'dup@ex.com' },
-        { Id: 2, Email: 'dup@ex.com' },
+        { Id: 1, Email: "dup@ex.com" },
+        { Id: 2, Email: "dup@ex.com" },
       ],
-      pageInfo: { totalRows: 2 }
+      pageInfo: { totalRows: 2 },
     });
 
-    const incoming = [{ Email: 'dup@ex.com', Name: 'Fail' }];
+    const incoming = [{ Email: "dup@ex.com", Name: "Fail" }];
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    process.argv = [
-      'node', 'index.js', 'rows', 'bulk-upsert', 'table1',
-      '--match', 'Email',
-      '--data', JSON.stringify(incoming)
-    ];
+    await runCli(
+      [
+        "--base",
+        "b1",
+        "rows",
+        "bulk-upsert",
+        "table1",
+        "--match",
+        "Email",
+        "--data",
+        JSON.stringify(incoming),
+      ],
+      configDir,
+    );
 
-    // We expect handleError to be called or the process to exit, 
-    // but in vitest with bootstrap() we can catch the error if it bubbles.
-    // However, the CLI handles it with handleError. 
-    // Let's mock console.error to verify the message.
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-    await bootstrap();
-
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Multiple rows matched'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Multiple rows matched"));
     consoleSpy.mockRestore();
-    exitSpy.mockRestore();
   });
 });
