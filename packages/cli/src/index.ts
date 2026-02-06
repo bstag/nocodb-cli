@@ -27,28 +27,46 @@ import {
 } from "./lib.js";
 import { createConfig, deleteHeader, getHeaders, setHeader } from "./config.js";
 import { loadSettings, saveSettings, resetSettings, getSettingsPath, DEFAULT_SETTINGS, type Settings } from "./settings.js";
+import { loadMultiConfig, saveMultiConfig, resolveNamespacedAlias, type MultiConfig, type WorkspaceConfig } from "./aliases.js";
 
 const config = createConfig();
 const settings = loadSettings();
+let multiConfig = loadMultiConfig();
+
+function getActiveWorkspaceName(): string | undefined {
+  return config.get("activeWorkspace") as string | undefined;
+}
+
+function getActiveWorkspace(): WorkspaceConfig | undefined {
+  const name = getActiveWorkspaceName();
+  return name ? multiConfig[name] : undefined;
+}
 
 function getBaseUrl(): string {
+  const ws = getActiveWorkspace();
+  if (ws?.baseUrl) return ws.baseUrl;
+
   const baseUrl = config.get("baseUrl");
   if (!baseUrl) {
-    throw new Error("Base URL is not set. Run: nocodb config set baseUrl <url>");
+    throw new Error("Base URL is not set. Run: nocodb workspace add <name> <url> <token>");
   }
   return baseUrl;
 }
 
 function getBaseId(fallback?: string): string {
-  const baseId = fallback ?? config.get("baseId");
+  const ws = getActiveWorkspace();
+  const baseId = fallback ?? config.get("baseId") ?? ws?.baseId;
+
   if (!baseId) {
     throw new Error("Base id is not set. Use --base <id> or: nocodb config set baseId <id>");
   }
-  return baseId;
+  return resolveNamespacedAlias(baseId, multiConfig, getActiveWorkspaceName()).id;
 }
 
 function getHeadersConfig(): Record<string, string> {
-  return getHeaders(config);
+  const ws = getActiveWorkspace();
+  const wsHeaders = ws?.headers ?? {};
+  return { ...getHeaders(config), ...wsHeaders };
 }
 
 async function readJsonFile(path: string): Promise<unknown> {
@@ -295,6 +313,145 @@ settingsCmd
     }
   });
 
+const workspaceCmd = program.command("workspace").description("Manage NocoDB workspaces (URL, Token, BaseID)");
+
+workspaceCmd
+  .command("add")
+  .argument("name", "Workspace name (alias)")
+  .argument("url", "Base URL")
+  .argument("token", "API Token (xc-token)")
+  .option("--base <id>", "Default Base ID for this workspace")
+  .action((name: string, url: string, token: string, options: { base?: string }) => {
+    multiConfig[name] = {
+      baseUrl: url,
+      headers: { "xc-token": token },
+      baseId: options.base,
+      aliases: {},
+    };
+    saveMultiConfig(multiConfig);
+    console.log(`Workspace '${name}' added.`);
+  });
+
+workspaceCmd
+  .command("use")
+  .argument("name", "Workspace name")
+  .action((name: string) => {
+    if (!multiConfig[name]) {
+      console.error(`Workspace '${name}' not found.`);
+      process.exit(1);
+    }
+    config.set("activeWorkspace", name);
+    console.log(`Switched to workspace '${name}'.`);
+  });
+
+workspaceCmd
+  .command("list")
+  .action(() => {
+    const active = getActiveWorkspaceName();
+    for (const name of Object.keys(multiConfig)) {
+      console.log(`${name === active ? "* " : "  "}${name} (${multiConfig[name].baseUrl})`);
+    }
+  });
+
+workspaceCmd
+  .command("delete")
+  .argument("name", "Workspace name")
+  .action((name: string) => {
+    if (!multiConfig[name]) {
+      console.error(`Workspace '${name}' not found.`);
+      process.exit(1);
+    }
+    delete multiConfig[name];
+    if (config.get("activeWorkspace") === name) {
+      config.set("activeWorkspace", undefined);
+    }
+    saveMultiConfig(multiConfig);
+    console.log(`Workspace '${name}' deleted.`);
+  });
+
+workspaceCmd
+  .command("show")
+  .argument("[name]", "Workspace name")
+  .action((name?: string) => {
+    const target = name ?? getActiveWorkspaceName();
+    if (!target || !multiConfig[target]) {
+      console.error("Workspace not found.");
+      process.exit(1);
+    }
+    console.log(JSON.stringify(multiConfig[target], null, 2));
+  });
+
+const aliasCmd = program.command("alias").description("Manage ID aliases (Namespaced)");
+
+aliasCmd
+  .command("set")
+  .argument("name", "Alias name (can be workspace.alias or just alias)")
+  .argument("id", "Original ID")
+  .action((name: string, id: string) => {
+    let targetWs = getActiveWorkspaceName();
+    let aliasName = name;
+
+    if (name.includes(".")) {
+      [targetWs, aliasName] = name.split(".");
+    }
+
+    if (!targetWs || !multiConfig[targetWs]) {
+      console.error("No active workspace. Use: nocodb workspace use <name> or specify workspace.alias");
+      process.exit(1);
+    }
+
+    multiConfig[targetWs].aliases[aliasName] = id;
+    saveMultiConfig(multiConfig);
+    console.log(`Alias '${targetWs}.${aliasName}' set to ${id}`);
+  });
+
+aliasCmd
+  .command("list")
+  .argument("[workspace]", "Workspace name")
+  .action((wsName?: string) => {
+    const target = wsName ?? getActiveWorkspaceName();
+    if (!target || !multiConfig[target]) {
+      console.log(JSON.stringify(multiConfig, null, 2));
+      return;
+    }
+    console.log(JSON.stringify(multiConfig[target].aliases, null, 2));
+  });
+
+aliasCmd
+  .command("delete")
+  .argument("name", "Alias name (can be workspace.alias or just alias)")
+  .action((name: string) => {
+    let targetWs = getActiveWorkspaceName();
+    let aliasName = name;
+
+    if (name.includes(".")) {
+      [targetWs, aliasName] = name.split(".");
+    }
+
+    if (!targetWs || !multiConfig[targetWs]) {
+      console.error("Workspace not found.");
+      process.exit(1);
+    }
+
+    delete multiConfig[targetWs].aliases[aliasName];
+    saveMultiConfig(multiConfig);
+    console.log(`Alias '${targetWs}.${aliasName}' deleted.`);
+  });
+
+aliasCmd
+  .command("clear")
+  .argument("[workspace]", "Workspace name")
+  .action((wsName?: string) => {
+    const target = wsName ?? getActiveWorkspaceName();
+    if (!target || !multiConfig[target]) {
+      console.error("Workspace not found.");
+      process.exit(1);
+    }
+    multiConfig[target].aliases = {};
+    saveMultiConfig(multiConfig);
+    console.log(`All aliases cleared for workspace '${target}'.`);
+  });
+
 program
   .command("request")
   .description("Make a raw API request")
@@ -374,7 +531,8 @@ basesCmd
   .action(async (baseId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
-      const result = await meta.getBase(baseId);
+      const resolved = resolveNamespacedAlias(baseId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.getBase(resolved.id);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -389,7 +547,8 @@ basesCmd
   .action(async (baseId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
-      const result = await meta.getBaseInfo(baseId);
+      const resolved = resolveNamespacedAlias(baseId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.getBaseInfo(resolved.id);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -424,7 +583,8 @@ basesCmd
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
-      const result = await meta.updateBase(baseId, body);
+      const resolved = resolveNamespacedAlias(baseId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.updateBase(resolved.id, body);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -439,7 +599,8 @@ basesCmd
   .action(async (baseId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
-      const result = await meta.deleteBase(baseId);
+      const resolved = resolveNamespacedAlias(baseId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.deleteBase(resolved.id);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -456,7 +617,8 @@ tablesCmd
   .action(async (baseId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
-      const result = await meta.listTables(baseId);
+      const resolved = resolveNamespacedAlias(baseId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.listTables(resolved.id);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -471,7 +633,8 @@ tablesCmd
   .action(async (tableId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
-      const result = await meta.getTable(tableId);
+      const resolved = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.getTable(resolved.id);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -489,7 +652,8 @@ tablesCmd
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
-      const result = await meta.createTable(baseId, body);
+      const resolved = resolveNamespacedAlias(baseId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.createTable(resolved.id, body);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -507,7 +671,8 @@ tablesCmd
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
-      const result = await meta.updateTable(tableId, body);
+      const resolved = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.updateTable(resolved.id, body);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -522,7 +687,8 @@ tablesCmd
   .action(async (tableId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
-      const result = await meta.deleteTable(tableId);
+      const resolved = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName());
+      const result = await meta.deleteTable(resolved.id);
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -956,10 +1122,11 @@ rowsCmd
   .option("--format <type>", "Output format (json, csv, table)")
   .action(async (tableId: string, options: { query: string[]; pretty?: boolean; format?: string }) => {
     try {
+      const resolvedTableId = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName()).id;
       const baseId = getBaseId(getBaseIdFromArgv());
       const query = parseQuery(options.query ?? []);
       const client = new NocoClient({ baseUrl: getBaseUrl(), headers: getHeadersConfig(), ...clientOptionsFromSettings() });
-      const result = await client.request("GET", `/api/v2/tables/${tableId}/records`, {
+      const result = await client.request("GET", `/api/v2/tables/${resolvedTableId}/records`, {
         query: Object.keys(query).length ? query : undefined,
       });
       printResult(result, options);
@@ -978,10 +1145,11 @@ rowsCmd
   .option("--format <type>", "Output format (json, csv, table)")
   .action(async (tableId: string, recordId: string, options: { query: string[]; pretty?: boolean; format?: string }) => {
     try {
+      const resolvedTableId = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName()).id;
       const baseId = getBaseId(getBaseIdFromArgv());
       const query = parseQuery(options.query ?? []);
       const client = new NocoClient({ baseUrl: getBaseUrl(), headers: getHeadersConfig(), ...clientOptionsFromSettings() });
-      const result = await client.request("GET", `/api/v2/tables/${tableId}/records/${recordId}`, {
+      const result = await client.request("GET", `/api/v2/tables/${resolvedTableId}/records/${recordId}`, {
         query: Object.keys(query).length ? query : undefined,
       });
       printResult(result, options);
@@ -1000,15 +1168,16 @@ rowsCmd
   .option("--format <type>", "Output format (json, csv, table)")
   .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
+      const resolvedTableId = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName()).id;
       const baseId = getBaseId(getBaseIdFromArgv());
       const body = await readJsonInput(options.data, options.dataFile);
       const swagger = await loadSwagger(baseId, true);
-      const op = findOperation(swagger, "post", `/api/v2/tables/${tableId}/records`);
+      const op = findOperation(swagger, "post", `/api/v2/tables/${resolvedTableId}/records`);
       if (op) {
         validateRequestBody(op, swagger, body);
       }
       const client = new NocoClient({ baseUrl: getBaseUrl(), headers: getHeadersConfig(), ...clientOptionsFromSettings() });
-      const result = await client.request("POST", `/api/v2/tables/${tableId}/records`, { body });
+      const result = await client.request("POST", `/api/v2/tables/${resolvedTableId}/records`, { body });
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -1024,15 +1193,16 @@ rowsCmd
   .option("--format <type>", "Output format (json, csv, table)")
   .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
+      const resolvedTableId = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName()).id;
       const baseId = getBaseId(getBaseIdFromArgv());
       const body = await readJsonInput(options.data, options.dataFile);
       const swagger = await loadSwagger(baseId, true);
-      const op = findOperation(swagger, "patch", `/api/v2/tables/${tableId}/records`);
+      const op = findOperation(swagger, "patch", `/api/v2/tables/${resolvedTableId}/records`);
       if (op) {
         validateRequestBody(op, swagger, body);
       }
       const client = new NocoClient({ baseUrl: getBaseUrl(), headers: getHeadersConfig(), ...clientOptionsFromSettings() });
-      const result = await client.request("PATCH", `/api/v2/tables/${tableId}/records`, { body });
+      const result = await client.request("PATCH", `/api/v2/tables/${resolvedTableId}/records`, { body });
       printResult(result, options);
     } catch (err) {
       handleError(err);
@@ -1048,15 +1218,16 @@ rowsCmd
   .option("--format <type>", "Output format (json, csv, table)")
   .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
+      const resolvedTableId = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName()).id;
       const baseId = getBaseId(getBaseIdFromArgv());
       const body = await readJsonInput(options.data, options.dataFile);
       const swagger = await loadSwagger(baseId, true);
-      const op = findOperation(swagger, "delete", `/api/v2/tables/${tableId}/records`);
+      const op = findOperation(swagger, "delete", `/api/v2/tables/${resolvedTableId}/records`);
       if (op) {
         validateRequestBody(op, swagger, body);
       }
       const client = new NocoClient({ baseUrl: getBaseUrl(), headers: getHeadersConfig(), ...clientOptionsFromSettings() });
-      const result = await client.request("DELETE", `/api/v2/tables/${tableId}/records`, { body });
+      const result = await client.request("DELETE", `/api/v2/tables/${resolvedTableId}/records`, { body });
       printResult(result, options);
     } catch (err) {
       handleError(err);
