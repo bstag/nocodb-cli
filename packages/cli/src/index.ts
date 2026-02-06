@@ -1424,6 +1424,78 @@ rowsCmd
   });
 
 rowsCmd
+  .command("bulk-upsert")
+  .argument("tableId", "Table id")
+  .requiredOption("--match <field>", "Field name used to match existing rows")
+  .option("-d, --data <json>", "Request JSON body (array of row objects)")
+  .option("-f, --data-file <path>", "Request JSON body from file")
+  .option("-q, --query <key=value>", "Query string parameter", collect, [])
+  .option("--pretty", "Pretty print JSON response")
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: {
+    match: string;
+    data?: string;
+    dataFile?: string;
+    query: string[];
+    pretty?: boolean;
+    format?: string;
+  }) => {
+    try {
+      const resolved = resolveNamespacedAlias(tableId, multiConfig, getActiveWorkspaceName());
+      const resolvedTableId = resolved.id;
+      const baseId = getBaseId(getBaseIdFromArgv());
+      const matchField = options.match;
+      const body = await readJsonInput(options.data, options.dataFile);
+      const incomingRows = expectRecordArray(body, "rows bulk-upsert expects a JSON array of row objects");
+
+      const query = parseQuery(options.query ?? []);
+      const client = new NocoClient({
+        baseUrl: resolved.workspace?.baseUrl ?? getBaseUrl(),
+        headers: resolved.workspace?.headers ?? getHeadersConfig(),
+        ...clientOptionsFromSettings(),
+      });
+
+      const listPath = `/api/v2/tables/${resolvedTableId}/records`;
+      const listResult = await client.request<unknown>("GET", listPath, {
+        query: Object.keys(query).length ? query : undefined,
+      });
+      const existingRows = extractRows(listResult);
+
+      const toCreate: Record<string, unknown>[] = [];
+      const toUpdate: Record<string, unknown>[] = [];
+
+      for (const row of incomingRows) {
+        const matchValue = row[matchField];
+        if (matchValue === undefined || matchValue === null) {
+          toCreate.push(row);
+          continue;
+        }
+
+        const existing = existingRows.find(ex => matchesFieldValue(ex, matchField, String(matchValue)));
+        if (existing) {
+          const recordId = getRecordId(existing);
+          toUpdate.push(withRecordId(row, recordId));
+        } else {
+          toCreate.push(row);
+        }
+      }
+
+      const results: { created?: unknown; updated?: unknown } = {};
+
+      if (toCreate.length > 0) {
+        results.created = await client.request("POST", listPath, { body: toCreate });
+      }
+      if (toUpdate.length > 0) {
+        results.updated = await client.request("PATCH", listPath, { body: toUpdate });
+      }
+
+      printResult(results, options);
+    } catch (err) {
+      handleError(err);
+    }
+  });
+
+rowsCmd
   .command("bulk-delete")
   .argument("tableId", "Table id")
   .option("-d, --data <json>", "Request JSON body (array of row identifiers)")
