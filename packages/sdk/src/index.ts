@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { ofetch } from "ofetch";
 
 export type HeadersMap = Record<string, string>;
@@ -205,6 +207,19 @@ export class MetaApi {
 
   getBaseSwagger(baseId: string): Promise<unknown> {
     return this.client.request("GET", `/api/v2/meta/bases/${baseId}/swagger.json`);
+  }
+
+  async uploadAttachment(filePath: string): Promise<unknown> {
+    const fileName = path.basename(filePath);
+    const fileContent = await fs.promises.readFile(filePath);
+    const boundary = `----nocodb-${Date.now()}`;
+    const header = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fileName}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
+    const footer = `\r\n--${boundary}--\r\n`;
+    const body = Buffer.concat([Buffer.from(header), fileContent, Buffer.from(footer)]);
+    return this.client.request("POST", "/api/v2/storage/upload", {
+      body,
+      headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+    });
   }
 }
 

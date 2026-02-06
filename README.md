@@ -83,6 +83,24 @@ nocodb columns update <columnId> --data '{"title":"State"}'
 nocodb columns delete <columnId>
 ```
 
+## Output formats
+
+All commands support `--pretty` for indented JSON and `--format <type>` for alternative output:
+
+```sh
+nocodb bases list --pretty              # indented JSON
+nocodb bases list --format csv          # CSV output
+nocodb bases list --format table        # ASCII table
+nocodb rows list <tableId> --format table
+```
+
+## Storage
+
+```sh
+nocodb storage upload ./photo.png
+nocodb storage upload ./doc.pdf --pretty
+```
+
 ## Raw requests
 
 Use this to call any endpoint directly.

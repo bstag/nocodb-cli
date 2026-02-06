@@ -1,5 +1,61 @@
 import Ajv from "ajv";
 
+function unwrapData(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.list)) return obj.list as Record<string, unknown>[];
+    return [obj];
+  }
+  return [{ value: data }];
+}
+
+function escapeCsvField(value: unknown): string {
+  const str = value == null ? "" : String(value);
+  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+export function formatCsv(data: unknown): string {
+  const rows = unwrapData(data);
+  if (rows.length === 0) return "";
+  const keys = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
+  const lines: string[] = [keys.map(escapeCsvField).join(",")];
+  for (const row of rows) {
+    lines.push(keys.map((k) => escapeCsvField(row[k])).join(","));
+  }
+  return lines.join("\n");
+}
+
+export function formatTable(data: unknown): string {
+  const rows = unwrapData(data);
+  if (rows.length === 0) return "(empty)";
+  const keys = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
+  const MAX_WIDTH = 40;
+
+  function truncate(str: string): string {
+    return str.length > MAX_WIDTH ? str.slice(0, MAX_WIDTH - 3) + "..." : str;
+  }
+
+  const headerCells = keys.map(truncate);
+  const dataCells = rows.map((row) => keys.map((k) => truncate(row[k] == null ? "" : String(row[k]))));
+
+  const colWidths = keys.map((_, i) => {
+    const vals = [headerCells[i], ...dataCells.map((r) => r[i])];
+    return Math.max(...vals.map((v) => v.length));
+  });
+
+  function formatRow(cells: string[]): string {
+    return "| " + cells.map((c, i) => c.padEnd(colWidths[i])).join(" | ") + " |";
+  }
+
+  const separator = "|-" + colWidths.map((w) => "-".repeat(w)).join("-|-") + "-|";
+  const lines = [formatRow(headerCells), separator, ...dataCells.map(formatRow)];
+  return lines.join("\n");
+}
+
 export type SwaggerDoc = {
   paths?: Record<string, Record<string, SwaggerOperation>>;
   definitions?: Record<string, unknown>;

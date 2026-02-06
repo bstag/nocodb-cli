@@ -3,6 +3,8 @@ import {
   applyPathParams,
   extractOperations,
   findOperation,
+  formatCsv,
+  formatTable,
   getPathParamNames,
   isHttpMethod,
   isSwaggerDoc,
@@ -112,5 +114,75 @@ describe("swagger helpers", () => {
     };
     expect(() => validateRequestBody(op, doc, { Name: "ok" })).not.toThrow();
     expect(() => validateRequestBody(op, doc, { Wrong: "nope" })).toThrow("Request body does not match schema");
+  });
+});
+
+describe("formatCsv", () => {
+  it("formats an array of objects as CSV", () => {
+    const data = [
+      { id: "1", name: "Alice" },
+      { id: "2", name: "Bob" },
+    ];
+    expect(formatCsv(data)).toBe("id,name\n1,Alice\n2,Bob");
+  });
+
+  it("unwraps NocoDB list envelope", () => {
+    const data = { list: [{ id: "1" }, { id: "2" }], pageInfo: {} };
+    expect(formatCsv(data)).toBe("id\n1\n2");
+  });
+
+  it("treats a single object as one row", () => {
+    expect(formatCsv({ a: 1, b: 2 })).toBe("a,b\n1,2");
+  });
+
+  it("escapes commas and quotes per RFC 4180", () => {
+    const data = [{ val: 'has, comma' }, { val: 'has "quote"' }];
+    expect(formatCsv(data)).toBe('val\n"has, comma"\n"has ""quote"""');
+  });
+
+  it("handles empty array", () => {
+    expect(formatCsv([])).toBe("");
+  });
+
+  it("handles rows with different keys", () => {
+    const data = [{ a: 1 }, { b: 2 }];
+    const csv = formatCsv(data);
+    expect(csv).toBe("a,b\n1,\n,2");
+  });
+});
+
+describe("formatTable", () => {
+  it("formats an array of objects as an ASCII table", () => {
+    const data = [
+      { id: "1", name: "Alice" },
+      { id: "2", name: "Bob" },
+    ];
+    const result = formatTable(data);
+    const lines = result.split("\n");
+    expect(lines).toHaveLength(4); // header, separator, 2 data rows
+    expect(lines[0]).toContain("id");
+    expect(lines[0]).toContain("name");
+    expect(lines[1]).toMatch(/^\|-.*-\|$/);
+    expect(lines[2]).toContain("1");
+    expect(lines[2]).toContain("Alice");
+  });
+
+  it("unwraps NocoDB list envelope", () => {
+    const data = { list: [{ x: "hello" }], pageInfo: {} };
+    const result = formatTable(data);
+    expect(result).toContain("x");
+    expect(result).toContain("hello");
+  });
+
+  it("returns (empty) for empty array", () => {
+    expect(formatTable([])).toBe("(empty)");
+  });
+
+  it("truncates long values", () => {
+    const longVal = "a".repeat(50);
+    const data = [{ col: longVal }];
+    const result = formatTable(data);
+    expect(result).toContain("...");
+    expect(result).not.toContain(longVal);
   });
 });

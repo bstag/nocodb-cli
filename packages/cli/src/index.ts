@@ -8,6 +8,8 @@ import {
   applyPathParams,
   extractOperations,
   findOperation,
+  formatCsv,
+  formatTable,
   getBaseIdFromArgv as parseBaseIdArgv,
   getPathParamNames,
   isHttpMethod,
@@ -73,12 +75,22 @@ async function readJsonInput(data?: string, dataFile?: string): Promise<unknown>
   throw new Error("Provide --data or --data-file");
 }
 
-function printResult(result: unknown, pretty?: boolean): void {
+function printResult(result: unknown, options?: { pretty?: boolean; format?: string } | boolean): void {
   if (process.env.NOCO_QUIET === "1") {
     return;
   }
   if (typeof result === "string") {
     console.log(result);
+    return;
+  }
+  const pretty = typeof options === "boolean" ? options : options?.pretty;
+  const format = typeof options === "boolean" ? "json" : (options?.format ?? "json");
+  if (format === "csv") {
+    console.log(formatCsv(result));
+    return;
+  }
+  if (format === "table") {
+    console.log(formatTable(result));
     return;
   }
   console.log(JSON.stringify(result, null, pretty ? 2 : 0));
@@ -208,12 +220,14 @@ program
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
+  .option("--format <type>", "Output format (json, csv, table)")
   .action(async (method: string, path: string, options: {
     query: string[];
     header: string[];
     data?: string;
     dataFile?: string;
     pretty?: boolean;
+    format?: string;
   }) => {
     try {
       const baseUrl = getBaseUrl();
@@ -245,7 +259,7 @@ program
         body,
       });
 
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -257,11 +271,12 @@ const basesCmd = program.command("bases").description("Manage bases");
 basesCmd
   .command("list")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.listBases();
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -272,11 +287,12 @@ basesCmd
   .command("get")
   .argument("baseId", "Base id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (baseId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (baseId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.getBase(baseId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -287,11 +303,12 @@ basesCmd
   .command("info")
   .argument("baseId", "Base id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (baseId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (baseId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.getBaseInfo(baseId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -303,12 +320,13 @@ basesCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.createBase(body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -321,12 +339,13 @@ basesCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (baseId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (baseId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.updateBase(baseId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -337,11 +356,12 @@ basesCmd
   .command("delete")
   .argument("baseId", "Base id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (baseId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (baseId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.deleteBase(baseId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -354,11 +374,12 @@ tablesCmd
   .command("list")
   .argument("baseId", "Base id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (baseId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (baseId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.listTables(baseId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -369,11 +390,12 @@ tablesCmd
   .command("get")
   .argument("tableId", "Table id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.getTable(tableId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -386,12 +408,13 @@ tablesCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (baseId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (baseId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.createTable(baseId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -404,12 +427,13 @@ tablesCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.updateTable(tableId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -420,11 +444,12 @@ tablesCmd
   .command("delete")
   .argument("tableId", "Table id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.deleteTable(tableId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -437,11 +462,12 @@ viewsCmd
   .command("list")
   .argument("tableId", "Table id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.listViews(tableId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -452,11 +478,12 @@ viewsCmd
   .command("get")
   .argument("viewId", "View id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (viewId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (viewId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.getView(viewId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -469,12 +496,13 @@ viewsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.createView(tableId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -487,12 +515,13 @@ viewsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (viewId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (viewId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.updateView(viewId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -503,11 +532,12 @@ viewsCmd
   .command("delete")
   .argument("viewId", "View id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (viewId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (viewId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.deleteView(viewId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -520,11 +550,12 @@ filtersCmd
   .command("list")
   .argument("viewId", "View id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (viewId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (viewId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.listViewFilters(viewId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -535,11 +566,12 @@ filtersCmd
   .command("get")
   .argument("filterId", "Filter id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (filterId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (filterId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.getFilter(filterId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -552,12 +584,13 @@ filtersCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (viewId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (viewId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.createViewFilter(viewId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -570,12 +603,13 @@ filtersCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (filterId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (filterId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.updateFilter(filterId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -586,11 +620,12 @@ filtersCmd
   .command("delete")
   .argument("filterId", "Filter id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (filterId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (filterId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.deleteFilter(filterId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -603,11 +638,12 @@ sortsCmd
   .command("list")
   .argument("viewId", "View id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (viewId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (viewId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.listViewSorts(viewId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -618,11 +654,12 @@ sortsCmd
   .command("get")
   .argument("sortId", "Sort id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (sortId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (sortId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.getSort(sortId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -635,12 +672,13 @@ sortsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (viewId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (viewId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.createViewSort(viewId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -653,12 +691,13 @@ sortsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (sortId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (sortId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.updateSort(sortId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -669,11 +708,12 @@ sortsCmd
   .command("delete")
   .argument("sortId", "Sort id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (sortId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (sortId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.deleteSort(sortId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -686,11 +726,12 @@ columnsCmd
   .command("list")
   .argument("tableId", "Table id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.listColumns(tableId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -701,11 +742,12 @@ columnsCmd
   .command("get")
   .argument("columnId", "Column id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (columnId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (columnId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.getColumn(columnId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -718,12 +760,13 @@ columnsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.createColumn(tableId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -736,12 +779,13 @@ columnsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (columnId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (columnId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const body = await readJsonInput(options.data, options.dataFile);
       const result = await meta.updateColumn(columnId, body);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -752,11 +796,12 @@ columnsCmd
   .command("delete")
   .argument("columnId", "Column id")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (columnId: string, options: { pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (columnId: string, options: { pretty?: boolean; format?: string }) => {
     try {
       const meta = createMeta();
       const result = await meta.deleteColumn(columnId);
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -769,9 +814,10 @@ metaCmd
   .command("swagger")
   .argument("baseId", "Base id")
   .option("--pretty", "Pretty print JSON response")
+  .option("--format <type>", "Output format (json, csv, table)")
   .option("--out <path>", "Write swagger JSON to a file")
   .option("--no-cache", "Do not use cached swagger")
-  .action(async (baseId: string, options: { pretty?: boolean; out?: string; cache?: boolean }) => {
+  .action(async (baseId: string, options: { pretty?: boolean; format?: string; out?: string; cache?: boolean }) => {
     try {
       const doc = await loadSwagger(baseId, options.cache !== false);
 
@@ -781,7 +827,7 @@ metaCmd
         return;
       }
 
-      printResult(doc, options.pretty);
+      printResult(doc, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -793,12 +839,15 @@ metaCmd
   .argument("baseId", "Base id")
   .option("--tag <name>", "Filter by tag")
   .option("--pretty", "Pretty print JSON response")
+  .option("--format <type>", "Output format (json, csv, table)")
   .option("--no-cache", "Do not use cached swagger")
-  .action(async (baseId: string, options: { tag?: string; pretty?: boolean; cache?: boolean }) => {
+  .action(async (baseId: string, options: { tag?: string; pretty?: boolean; format?: string; cache?: boolean }) => {
     try {
       const doc = await loadSwagger(baseId, options.cache !== false);
       const endpoints = listEndpoints(doc, options.tag);
-      if (options.pretty) {
+      if (options.format === "csv" || options.format === "table") {
+        printResult(endpoints.map((e) => ({ endpoint: e })), options);
+      } else if (options.pretty) {
         console.log(JSON.stringify(endpoints, null, 2));
       } else {
         for (const line of endpoints) {
@@ -854,7 +903,8 @@ rowsCmd
   .argument("tableId", "Table id")
   .option("-q, --query <key=value>", "Query string parameter", collect, [])
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { query: string[]; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { query: string[]; pretty?: boolean; format?: string }) => {
     try {
       const baseId = getBaseId(getBaseIdFromArgv());
       const query = parseQuery(options.query ?? []);
@@ -862,7 +912,7 @@ rowsCmd
       const result = await client.request("GET", `/api/v2/tables/${tableId}/records`, {
         query: Object.keys(query).length ? query : undefined,
       });
-      printResult(result, options.pretty);
+      printResult(result, options);
       await ensureSwaggerCache(baseId);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
@@ -876,7 +926,8 @@ rowsCmd
   .argument("recordId", "Record id")
   .option("-q, --query <key=value>", "Query string parameter", collect, [])
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, recordId: string, options: { query: string[]; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, recordId: string, options: { query: string[]; pretty?: boolean; format?: string }) => {
     try {
       const baseId = getBaseId(getBaseIdFromArgv());
       const query = parseQuery(options.query ?? []);
@@ -884,7 +935,7 @@ rowsCmd
       const result = await client.request("GET", `/api/v2/tables/${tableId}/records/${recordId}`, {
         query: Object.keys(query).length ? query : undefined,
       });
-      printResult(result, options.pretty);
+      printResult(result, options);
       await ensureSwaggerCache(baseId);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
@@ -898,7 +949,8 @@ rowsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const baseId = getBaseId(getBaseIdFromArgv());
       const body = await readJsonInput(options.data, options.dataFile);
@@ -909,7 +961,7 @@ rowsCmd
       }
       const client = new NocoClient({ baseUrl: getBaseUrl(), headers: getHeadersConfig() });
       const result = await client.request("POST", `/api/v2/tables/${tableId}/records`, { body });
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -922,7 +974,8 @@ rowsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const baseId = getBaseId(getBaseIdFromArgv());
       const body = await readJsonInput(options.data, options.dataFile);
@@ -933,7 +986,7 @@ rowsCmd
       }
       const client = new NocoClient({ baseUrl: getBaseUrl(), headers: getHeadersConfig() });
       const result = await client.request("PATCH", `/api/v2/tables/${tableId}/records`, { body });
-      printResult(result, options.pretty);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -946,7 +999,8 @@ rowsCmd
   .option("-d, --data <json>", "Request JSON body")
   .option("-f, --data-file <path>", "Request JSON body from file")
   .option("--pretty", "Pretty print JSON response")
-  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean }) => {
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (tableId: string, options: { data?: string; dataFile?: string; pretty?: boolean; format?: string }) => {
     try {
       const baseId = getBaseId(getBaseIdFromArgv());
       const body = await readJsonInput(options.data, options.dataFile);
@@ -957,7 +1011,25 @@ rowsCmd
       }
       const client = new NocoClient({ baseUrl: getBaseUrl(), headers: getHeadersConfig() });
       const result = await client.request("DELETE", `/api/v2/tables/${tableId}/records`, { body });
-      printResult(result, options.pretty);
+      printResult(result, options);
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : String(err));
+      process.exitCode = 1;
+    }
+  });
+
+const storageCmd = program.command("storage").description("File storage operations");
+
+storageCmd
+  .command("upload")
+  .argument("filePath", "Path to the file to upload")
+  .option("--pretty", "Pretty print JSON response")
+  .option("--format <type>", "Output format (json, csv, table)")
+  .action(async (filePath: string, options: { pretty?: boolean; format?: string }) => {
+    try {
+      const meta = createMeta();
+      const result = await meta.uploadAttachment(filePath);
+      printResult(result, options);
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exitCode = 1;
@@ -1055,6 +1127,7 @@ async function registerApiCommands(parent: Command, baseId: string): Promise<voi
       .option("-d, --data <json>", "Request JSON body")
       .option("-f, --data-file <path>", "Request JSON body from file")
       .option("--pretty", "Pretty print JSON response")
+      .option("--format <type>", "Output format (json, csv, table)")
       .action(async (...args: unknown[]) => {
         try {
           const cmd = args[args.length - 1] as Command;
@@ -1064,6 +1137,7 @@ async function registerApiCommands(parent: Command, baseId: string): Promise<voi
             data?: string;
             dataFile?: string;
             pretty?: boolean;
+            format?: string;
           }>();
 
           const pathArgs = args.slice(0, pathParamNames.length) as string[];
@@ -1091,7 +1165,7 @@ async function registerApiCommands(parent: Command, baseId: string): Promise<voi
             body,
           });
 
-          printResult(result, options.pretty);
+          printResult(result, options);
         } catch (err) {
           console.error(err instanceof Error ? err.message : String(err));
           process.exitCode = 1;
