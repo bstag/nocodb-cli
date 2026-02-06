@@ -1449,6 +1449,12 @@ rowsCmd
       const incomingRows = expectRecordArray(body, "rows bulk-upsert expects a JSON array of row objects");
 
       const query = parseQuery(options.query ?? []);
+      const swagger = await loadSwagger(baseId, true);
+      const createOp = findOperation(swagger, "post", `/api/v2/tables/${resolvedTableId}/records`);
+      const updateOp = findOperation(swagger, "patch", `/api/v2/tables/${resolvedTableId}/records`);
+
+      if (createOp) validateRequestBody(createOp, swagger, incomingRows);
+
       const client = new NocoClient({
         baseUrl: resolved.workspace?.baseUrl ?? getBaseUrl(),
         headers: resolved.workspace?.headers ?? getHeadersConfig(),
@@ -1456,10 +1462,22 @@ rowsCmd
       });
 
       const listPath = `/api/v2/tables/${resolvedTableId}/records`;
-      const listResult = await client.request<unknown>("GET", listPath, {
-        query: Object.keys(query).length ? query : undefined,
-      });
-      const existingRows = extractRows(listResult);
+      const existingRows: Record<string, unknown>[] = [];
+      let page = 1;
+      const pageSize = 1000;
+
+      while (true) {
+        const listResult = await client.request<any>("GET", listPath, {
+          query: { ...query, page: String(page), limit: String(pageSize) },
+        });
+        const pageRows = extractRows(listResult);
+        existingRows.push(...pageRows);
+        
+        // Handle both raw array and {list: [], pageInfo: {}} response shapes
+        const totalRows = listResult?.pageInfo?.totalRows ?? 0;
+        if (pageRows.length < pageSize || existingRows.length >= totalRows) break;
+        page += 1;
+      }
 
       const toCreate: Record<string, unknown>[] = [];
       const toUpdate: Record<string, unknown>[] = [];
@@ -1471,9 +1489,13 @@ rowsCmd
           continue;
         }
 
-        const existing = existingRows.find(ex => matchesFieldValue(ex, matchField, String(matchValue)));
-        if (existing) {
-          const recordId = getRecordId(existing);
+        const matches = existingRows.filter(ex => matchesFieldValue(ex, matchField, String(matchValue)));
+        if (matches.length > 1) {
+          throw new Error(`Multiple rows matched '${matchField}=${matchValue}'. Bulk upsert requires unique matches.`);
+        }
+
+        if (matches.length === 1) {
+          const recordId = getRecordId(matches[0]);
           toUpdate.push(withRecordId(row, recordId));
         } else {
           toCreate.push(row);
@@ -1486,6 +1508,7 @@ rowsCmd
         results.created = await client.request("POST", listPath, { body: toCreate });
       }
       if (toUpdate.length > 0) {
+        if (updateOp) validateRequestBody(updateOp, swagger, toUpdate);
         results.updated = await client.request("PATCH", listPath, { body: toUpdate });
       }
 

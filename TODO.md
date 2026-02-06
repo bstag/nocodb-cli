@@ -40,6 +40,7 @@
 - Unit tests for config, headers, and utility parsing
 - Unit tests for row upsert command behavior (`rows-upsert.test.ts`)
 - Unit tests for bulk row command behavior (`rows-bulk.test.ts`)
+- Unit tests for bulk row upsert behavior (`rows-bulk-upsert.test.ts`)
 - SDK client unit tests
 - Comprehensive E2E suite (`scripts/e2e-cli.mjs`) covering 40+ column types, CRUD, link columns, attachments, swagger caching
 
