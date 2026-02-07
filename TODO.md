@@ -2,76 +2,88 @@
 
 ## What's Done
 
-### SDK (`packages/sdk/src/index.ts`)
+### SDK (`packages/sdk/src/`)
 
-25 methods covering CRUD for core metadata endpoints:
+28+ methods covering CRUD for core metadata and data endpoints, all with typed generics:
 
 - **Bases** — list, create, get, getInfo, update, delete
 - **Tables** — list, create, get, update, delete
-- **Views** — list, create, get, update, delete
+- **Views** — list, create (v1 type-specific endpoints), get, update, delete
 - **Filters** — list, create, get, update, delete
 - **Sorts** — list, create, get, update, delete
 - **Columns** — list, create, get, update, delete
+- **Links** — listLinks, linkRecords, unlinkRecords (`DataApi`)
 - **Swagger** — getBaseSwagger
 - **Storage** — uploadAttachment
-- **Low-level** — `NocoClient.request()`, `parseHeader()`, `normalizeBaseUrl()`
+- **Schema** — introspectTable (returns full table schema with columns, primary key, display value, relations)
+- **Low-level** — `NocoClient.request<T>()`, `parseHeader()`, `normalizeBaseUrl()`
+- **Typed responses** — all methods use generics (e.g., `Promise<ListResponse<Base>>`, `Promise<Table>`)
+- **Typed entities** — `Base`, `Table`, `View`, `Column`, `Filter`, `Sort`, `Row`, `ViewType`, `ColumnType`
+- **Typed errors** — `AuthenticationError`, `NotFoundError`, `ConflictError`, `ValidationError`, `NetworkError`
+- **Retry/timeout** — configurable via `RetryOptions` and `timeoutMs`
 
-### CLI (`packages/cli/src/index.ts`)
+### CLI (`packages/cli/src/`)
 
-50+ commands including:
+60+ commands including:
 
 - **Config** — `config set/get/show`
 - **Headers** — `header set/delete/list`
-- **Raw requests** — `request <method> <path>` with `-q`, `-H`, `-d`, `-f` options
+- **Raw requests** — `request <method> <path>` with `--query`, `--header`, `--data`, `--data-file` options
 - **Bases** — `bases list/get/info/create/update/delete`
 - **Tables** — `tables list/get/create/update/delete`
-- **Views** — `views list/get/create/update/delete`
+- **Views** — `views list/get/create/update/delete` (create supports `--type grid|form|gallery|kanban|calendar`)
 - **Filters** — `filters list/get/create/update/delete`
 - **Sorts** — `sorts list/get/create/update/delete`
 - **Columns** — `columns list/get/create/update/delete` (with JSON schema validation)
-- **Rows** — `rows list/read/create/update/delete/upsert/bulk-create/bulk-update/bulk-upsert/bulk-delete` (with schema validation)
+- **Rows** — `rows list/read/create/update/delete/upsert/bulk-create/bulk-update/bulk-upsert/bulk-delete` (with schema validation, `--match`, `--create-only`, `--update-only`)
+- **Links** — `links list/create/delete`
 - **Storage** — `storage upload <filePath>`
+- **Schema** — `schema introspect <tableId>` (discover columns, primary key, display value, relations)
 - **Meta** — `meta swagger/endpoints/cache clear`
 - **Dynamic API** — `--base <id> api <tag> <operation>` auto-generated from Swagger
+- **Settings** — `settings show/path/set/reset` (timeout, retry count, retry delay, retry status codes)
+- **Workspaces** — `workspace add/use/list/show/delete` (multi-account support)
+- **Aliases** — `alias set/list/delete/clear` (friendly names for table IDs, namespaced by workspace)
 - **Output formats** — `--format json|csv|table` on all commands, `--pretty` for indented JSON
+- **Verbose mode** — `--verbose` for request timing and retry logging
+- **Error handling** — contextual HTTP error messages with status codes and response bodies
 
-### Testing
+### Testing (30 test files, 498+ tests)
 
-- Unit tests for config, headers, and utility parsing
-- Unit tests for row upsert command behavior (`rows-upsert.test.ts`)
-- Unit tests for bulk row command behavior (`rows-bulk.test.ts`)
-- Unit tests for bulk row upsert behavior (`rows-bulk-upsert.test.ts`)
-- SDK client unit tests
-- Comprehensive E2E suite (`scripts/e2e-cli.mjs`) covering 40+ column types, CRUD, link columns, attachments, swagger caching
+- Unit tests for config, headers, settings, and utility parsing
+- Unit tests for MetaService, RowService, LinkService, StorageService, SwaggerService
+- Unit tests for row upsert, bulk row, and bulk upsert command behavior
+- E2E tests with mock HTTP servers for all CRUD commands (bases, tables, views, columns, filters, sorts, links, rows, request)
+- E2E tests for workspace and alias management
+- Performance tests
+- Comprehensive live E2E suite (`scripts/e2e-cli.mjs`) covering 40+ column types, CRUD, link columns, attachments, swagger caching, schema introspection
+
+### API Endpoint Notes
+
+- Most endpoints use NocoDB v2 API (`/api/v2/meta/...`)
+- **View creation** uses v1 API: `POST /api/v1/db/meta/tables/{tableId}/grids` (and `/forms`, `/galleries`, `/kanbans`, `/calendars`)
+- The e2e script uses only CLI commands — no direct API calls
 
 ---
 
-## What's Missing
+## What's Still Missing
 
 ### SDK Gaps
 
-- **Untyped responses** — all methods return `Promise<unknown>`, no typed generics
 - **No pagination helpers** — no cursor/offset wrappers for large result sets
-- ~~**No retry/timeout logic** — single-shot requests only~~ ✅ Done (settings file + CLI flags)
-- **No bulk row operations** — NocoDB supports batch create/update/delete natively
-- ~~**No link record CRUD** — can create link *columns* but can't list/create/delete linked *records*~~ ✅ Done
-- ~~**No attachment upload** — code exists in E2E tests but not exposed in SDK~~ ✅ Done
 - **No user/auth APIs** — no profile, token management, or invitation endpoints
 - **No webhook/automation APIs** — no hook creation or management
-- **No workspace/org APIs** — no workspace CRUD or member management
+- **No NocoDB workspace/org APIs** — no NocoDB-level workspace CRUD or member management (distinct from CLI workspaces)
 - **No audit log APIs** — no activity or change tracking
 - **No export/import APIs** — no CSV/JSON export or import
 - **No comment/collaboration APIs** — no discussion or @mention support
 
 ### CLI Gaps
 
-- ~~**No attachment command** — `nocodb attachments upload` (code already in E2E)~~ ✅ Done (`storage upload`)
-- ~~**No bulk row commands** — `rows bulk-create`, `rows bulk-update`~~ ✅ Done (`rows bulk-create/bulk-update/bulk-delete`)
-- ~~**No link record commands** — `links list/create/delete`~~ ✅ Done
-- ~~**No output format options** — no `--format csv|table|yaml` or `--select` for field filtering~~ ✅ Done (`--format json|csv|table`)
 - **No `nocodb me`** — no quick way to verify auth/identity
-- **No workspace/org commands**
+- **No env var support for config** — no `NOCO_TOKEN`, `NOCO_BASE_URL` env vars for CI/CD (must use `config set` or workspaces)
 - **No help examples** — commands lack inline usage examples
+- **No `--select` field filtering** — no way to pick specific fields from output
 
 ---
 
@@ -79,14 +91,11 @@
 
 | # | Feature | Effort | Impact | Notes |
 |---|---------|--------|--------|-------|
-| ~~1~~ | ~~Expose attachment upload as CLI command~~ | | | ✅ Done |
-| ~~2~~ | ~~Add `--format` output option (json/csv/table)~~ | | | ✅ Done |
-| ~~3~~ | ~~Better error messages with context wrapping~~ | | | ✅ Done |
-| 4 | Typed SDK responses (generics on return types) | ~50 lines | Medium | Type safety across the board |
-| 5 | Bulk row operations from file input | ~80 lines | High | Power-user feature, NocoDB supports natively |
-| ~~6~~ | ~~Link record management commands~~ | | | ✅ Done |
-| 7 | `nocodb me` command | ~20 lines | Low | Quick auth sanity check |
-| 8 | Env var support for all config options | ~30 lines | Medium | CI/CD friendliness (`NOCO_TOKEN`, `NOCO_BASE_ID`) |
+| 1 | `nocodb me` command | ~20 lines | Low | Quick auth sanity check |
+| 2 | Env var support for all config options | ~30 lines | Medium | CI/CD friendliness (`NOCO_TOKEN`, `NOCO_BASE_URL`, `NOCO_BASE_ID`) |
+| 3 | Pagination helpers (auto-fetch all pages) | ~60 lines | Medium | Useful for large datasets |
+| 4 | `--select` field filtering on output | ~40 lines | Medium | Power-user feature for scripting |
+| 5 | Inline help examples on commands | ~100 lines | Low | Better developer experience |
 
 ---
 
@@ -95,15 +104,18 @@
 ### Strengths
 
 - Clean separation between SDK and CLI packages
-- TypeScript throughout
+- TypeScript throughout with fully typed SDK generics
 - AJV schema validation for request bodies
 - Dynamic command generation from Swagger specs
 - Swagger caching with manual invalidation (`meta cache clear`)
+- Multi-workspace support with per-workspace aliases
+- Configurable retry/timeout with settings persistence
+- Verbose mode for debugging (`--verbose`)
+- Contextual error messages with HTTP status codes
 
 ### Weaknesses
 
-- SDK returns untyped `Promise<unknown>` everywhere
-- No request logging or debug mode
-- Config is minimal (baseUrl, baseId, headers only)
 - Swagger parsing assumes specific NocoDB path format
 - No automatic cache invalidation strategy
+- View creation requires v1 API (v2 doesn't support it)
+- No env var fallback for config (must use `config set` or workspaces)

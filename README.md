@@ -91,11 +91,16 @@ nocodb tables delete <tableId>
 
 ```sh
 nocodb views list <tableId>
-nocodb views get <viewId>
+nocodb views get <tableId> <viewId>
 nocodb views create <tableId> --data '{"title":"Grid"}'
+nocodb views create <tableId> --type form --data '{"title":"My Form"}'
 nocodb views update <viewId> --data '{"title":"New View"}'
 nocodb views delete <viewId>
 ```
+
+Supported `--type` values: `grid` (default), `form`, `gallery`, `kanban`, `calendar`.
+
+> **Note:** View creation uses the NocoDB v1 API (`/api/v1/db/meta/tables/{id}/grids` etc.) because the v2 endpoint does not support it.
 
 ## Filters
 
@@ -127,6 +132,22 @@ nocodb columns update <columnId> --data '{"title":"State"}'
 nocodb columns delete <columnId>
 ```
 
+## Schema Introspection
+
+Discover table structures including columns, primary keys, display values, and relations:
+
+```sh
+nocodb schema introspect <tableId>
+nocodb schema introspect <tableId> --pretty
+nocodb schema introspect <tableId> --format table
+```
+
+The output includes:
+- Table `id`, `title`, `table_name`
+- `primaryKey` and `displayValue` column names
+- Full column list with `id`, `title`, `column_name`, `uidt`, `primaryKey`, `required`, `unique`
+- `relation` object on link columns (`type` and `targetTableId`)
+
 ## Settings
 
 Timeout and retry behavior can be configured via `~/.nocodb-cli/settings.json`. Override the directory with `NOCODB_SETTINGS_DIR` env var.
@@ -157,6 +178,12 @@ nocodb --timeout 5000 bases list
 nocodb --retries 0 bases list     # disable retries for this call
 ```
 
+Use `--verbose` on any command to see request timing and retry information:
+
+```sh
+nocodb --verbose rows list <tableId>
+```
+
 ## Output formats
 
 All commands support `--pretty` for indented JSON and `--format <type>` for alternative output:
@@ -166,6 +193,16 @@ nocodb bases list --pretty              # indented JSON
 nocodb bases list --format csv          # CSV output
 nocodb bases list --format table        # ASCII table
 nocodb rows list <tableId> --format table
+```
+
+## Links
+
+Manage linked records between tables:
+
+```sh
+nocodb links list <tableId> <linkFieldId> <recordId>
+nocodb links create <tableId> <linkFieldId> <recordId> --data '[{"Id":100},{"Id":200}]'
+nocodb links delete <tableId> <linkFieldId> <recordId> --data '[{"Id":100}]'
 ```
 
 ## Storage
@@ -269,6 +306,7 @@ Non-HTTP errors (invalid JSON input, missing config, validation failures) are pr
 ## Notes
 
 - The SDK is in `packages/sdk` and the CLI is in `packages/cli`.
+- The SDK uses fully typed generics (e.g., `Promise<ListResponse<Base>>`) for all metadata operations.
 - Meta swagger is cached under your CLI config directory for faster reuse.
 - Use `nocodb config set baseId <id>` to avoid repeating `--base` for dynamic commands.
 - If an endpoint differs in your NocoDB deployment, use `nocodb request` or `nocodb meta endpoints`.

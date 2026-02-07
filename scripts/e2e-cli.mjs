@@ -445,6 +445,16 @@ function storageUpload(filePath) {
   return jsonParseOrThrow(out);
 }
 
+// --- Schema introspection helpers ---
+function schemaIntrospect(tableId, extraFlags = []) {
+  const out = runCli(["schema", "introspect", tableId, "--pretty", ...extraFlags]);
+  return jsonParseOrThrow(out);
+}
+
+function schemaIntrospectAllowFail(tableId, extraFlags = []) {
+  return runCliAllowFail(["schema", "introspect", tableId, ...extraFlags]);
+}
+
 // --- Workspace/Alias helpers ---
 function workspaceAdd(name, url, token, baseId) {
   const args = ["workspace", "add", name, url, token];
@@ -553,7 +563,7 @@ function writeReportMarkdown(report) {
   const featureKeys = [
     "workspace", "bases", "tablesExtra", "views", "filters", "sorts",
     "upsert", "bulkOps", "bulkUpsert", "request", "metaEndpoints",
-    "dynamicApi", "storageUpload",
+    "dynamicApi", "storageUpload", "schemaIntrospect",
   ];
   for (const key of featureKeys) {
     const result = report[key];
@@ -1290,6 +1300,63 @@ async function main() {
     console.log("Storage upload tests failed:", report.storageUpload.error);
   }
 
+  // =========================================================================
+  // NEW: Schema introspection tests
+  // =========================================================================
+  console.log("Testing schema introspection...");
+  try {
+    // Basic introspect on primary table
+    const schema = schemaIntrospect(primary.id);
+    assert(schema.id === primary.id, "schema introspect should return correct table id");
+    assert(typeof schema.title === "string" && schema.title.length > 0, "schema should have a title");
+    assert(typeof schema.table_name === "string" && schema.table_name.length > 0, "schema should have a table_name");
+    assert(Array.isArray(schema.columns), "schema should have a columns array");
+    assert(schema.columns.length > 0, "schema columns should not be empty");
+
+    // Verify column structure
+    const firstCol = schema.columns[0];
+    assert(typeof firstCol.id === "string", "column should have an id");
+    assert(typeof firstCol.title === "string", "column should have a title");
+    assert(typeof firstCol.uidt === "string", "column should have a uidt");
+    assert(typeof firstCol.primaryKey === "boolean", "column should have a primaryKey boolean");
+    assert(typeof firstCol.required === "boolean", "column should have a required boolean");
+    assert(typeof firstCol.unique === "boolean", "column should have a unique boolean");
+
+    // Verify primaryKey is identified
+    const pkCol = schema.columns.find((c) => c.primaryKey === true);
+    assert(pkCol !== undefined, "schema should identify a primary key column");
+
+    // Verify displayValue is set
+    assert(schema.displayValue !== undefined, "schema should have a displayValue");
+
+    // Introspect secondary table too
+    const schema2 = schemaIntrospect(secondary.id);
+    assert(schema2.id === secondary.id, "schema introspect on secondary should return correct id");
+    assert(Array.isArray(schema2.columns), "secondary schema should have columns");
+
+    // Check that link column has a relation (if link was created)
+    const linkCol = schema.columns.find((c) => c.relation !== undefined);
+    if (linkCol) {
+      assert(typeof linkCol.relation.type === "string", "relation should have a type");
+      assert(typeof linkCol.relation.targetTableId === "string", "relation should have a targetTableId");
+    }
+
+    // Test with --format json (non-pretty, default)
+    const schemaJson = schemaIntrospectAllowFail(primary.id);
+    assert(schemaJson.status === 0, "schema introspect without --pretty should succeed");
+    const parsed = jsonParseOrThrow(schemaJson.stdout);
+    assert(parsed.id === primary.id, "non-pretty output should be valid JSON with correct id");
+
+    // Test with invalid table id
+    const badResult = schemaIntrospectAllowFail("nonexistent_table_id_999");
+    assert(badResult.status !== 0, "schema introspect with invalid id should fail");
+
+    report.schemaIntrospect = { status: "passed" };
+  } catch (err) {
+    report.schemaIntrospect = { status: "failed", error: err.message || String(err) };
+    console.log("Schema introspection tests failed:", report.schemaIntrospect.error);
+  }
+
   console.log("Cleanup...");
   deleteRow(primary.id, { Id: rowA.Id });
   deleteRow(secondary.id, { Id: rowB.Id });
@@ -1322,7 +1389,7 @@ async function main() {
   const featureTests = [
     "workspace", "bases", "tablesExtra", "views", "filters", "sorts",
     "upsert", "bulkOps", "bulkUpsert", "request", "metaEndpoints",
-    "dynamicApi", "storageUpload",
+    "dynamicApi", "storageUpload", "schemaIntrospect",
   ];
   const featurePassed = featureTests.filter((k) => report[k]?.status === "passed").length;
   const featureFailed = featureTests.filter((k) => report[k]?.status === "failed").length;
