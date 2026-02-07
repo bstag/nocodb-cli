@@ -9,5 +9,8 @@
     "lint": "npm --prefix packages/sdk run lint && npm --prefix packages/cli run lint",
     "test": "npm --prefix packages/sdk run test && npm --prefix packages/cli run test",
     "e2e": "node scripts/e2e-cli.mjs"
+  },
+  "devDependencies": {
+    "fast-check": "^4.5.3"
   }
 }
