@@ -19,6 +19,7 @@ import { RowService } from './services/row-service.js';
 import { MetaService } from './services/meta-service.js';
 import { LinkService } from './services/link-service.js';
 import { StorageService } from './services/storage-service.js';
+import { SchemaService } from './services/schema-service.js';
 import type { ConfigManager } from './config/manager.js';
 import type { WorkspaceConfig, GlobalSettings } from './config/types.js';
 
@@ -265,6 +266,12 @@ export function createContainer(configManager: ConfigManager): Container {
     return new StorageService(client);
   });
 
+  // Register SchemaService factory
+  // Factory function that accepts a NocoClient and returns a SchemaService instance
+  container.set('schemaService', (client: NocoClient) => {
+    return new SchemaService(client);
+  });
+
   return container;
 }
 
@@ -333,6 +340,12 @@ export interface TestContainerOptions {
    * If not provided, a default mock will be used.
    */
   storageService?: (client: NocoClient) => StorageService;
+
+  /**
+   * Mock factory function for creating SchemaService instances.
+   * If not provided, a default mock will be used.
+   */
+  schemaService?: (client: NocoClient) => SchemaService;
 }
 
 /**
@@ -417,6 +430,10 @@ export function createTestContainer(options: TestContainerOptions = {}): Contain
   // Register StorageService factory (mock or default)
   const storageService = options.storageService || createDefaultMockStorageServiceFactory();
   container.set('storageService', storageService);
+
+  // Register SchemaService factory (mock or default)
+  const schemaService = options.schemaService || createDefaultMockSchemaServiceFactory();
+  container.set('schemaService', schemaService);
 
   return container;
 }
@@ -579,4 +596,20 @@ function createDefaultMockStorageServiceFactory(): (client: NocoClient) => Stora
   return () => ({
     upload: async () => ({ url: 'https://example.com/file.txt', title: 'file.txt' }),
   } as unknown as StorageService);
+}
+
+/**
+ * Creates a default mock SchemaService factory for testing.
+ * 
+ * @returns Mock SchemaService factory function
+ */
+function createDefaultMockSchemaServiceFactory(): (client: NocoClient) => SchemaService {
+  return () => ({
+    introspectTable: async () => ({
+      id: 't1',
+      title: 'Test Table',
+      table_name: 'test_table',
+      columns: [],
+    }),
+  } as unknown as SchemaService);
 }
