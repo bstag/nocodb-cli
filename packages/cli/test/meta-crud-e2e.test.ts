@@ -196,6 +196,68 @@ function startServer() {
       return;
     }
 
+    // --- Filter Children ---
+    if (url.pathname === "/api/v2/meta/filters/flt1/children" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ list: [{ id: "flt_child1", fk_column_id: "c1", comparison_op: "eq", value: "test" }], pageInfo: {} }));
+      return;
+    }
+
+    // --- Hook Filters ---
+    if (url.pathname === "/api/v2/meta/hooks/hk1/filters" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ list: [{ id: "hf1", fk_column_id: "c1", comparison_op: "eq" }], pageInfo: {} }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/hooks/hk1/filters" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ id: "hf-new", ...(body as object) }));
+      return;
+    }
+
+    // --- Set Primary Column ---
+    if (url.pathname === "/api/v2/meta/columns/c1/primary" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ msg: "success" }));
+      return;
+    }
+
+    // --- Duplicate Operations ---
+    if (url.pathname === "/api/v2/meta/duplicate/b1" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ id: "job_dup_base", ...(body as object) }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/duplicate/b1/src1" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ id: "job_dup_src", ...(body as object) }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/duplicate/b1/table/t1" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ id: "job_dup_tbl", ...(body as object) }));
+      return;
+    }
+
+    // --- Visibility Rules ---
+    if (url.pathname === "/api/v2/meta/bases/b1/visibility-rules" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify([{ id: "vw1", title: "Grid", disabled: { viewer: true } }]));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/bases/b1/visibility-rules" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ msg: "success" }));
+      return;
+    }
+
+    // --- App Info ---
+    if (url.pathname === "/api/v2/meta/nocodb/info" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ version: "0.250.0", authType: "jwt", isDocker: true }));
+      return;
+    }
+
     res.writeHead(404, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "not found" }));
   });
@@ -457,7 +519,7 @@ describe("meta-crud e2e: views", () => {
 
       await runCli(["views", "create", "t1", "--data", '{"title":"NewView"}'], configDir);
 
-      const createCall = calls.find((c) => c.method === "POST" && c.path === "/api/v1/db/meta/tables/t1/grids");
+      const createCall = calls.find((c) => c.method === "POST" && c.path === "/api/v2/meta/tables/t1/grids");
       expect(createCall).toBeDefined();
       expect(createCall?.body).toEqual({ title: "NewView" });
     } finally { server.close(); }
@@ -472,7 +534,7 @@ describe("meta-crud e2e: views", () => {
 
       await runCli(["views", "create", "t1", "--type", "form", "--data", '{"title":"MyForm"}'], configDir);
 
-      const createCall = calls.find((c) => c.method === "POST" && c.path === "/api/v1/db/meta/tables/t1/forms");
+      const createCall = calls.find((c) => c.method === "POST" && c.path === "/api/v2/meta/tables/t1/forms");
       expect(createCall).toBeDefined();
       expect(createCall?.body).toEqual({ title: "MyForm" });
     } finally { server.close(); }
@@ -797,6 +859,229 @@ describe("me e2e", () => {
       expect(parsed).toEqual({ email: "test@example.com", display_name: "Test User" });
       expect(parsed).not.toHaveProperty("id");
       expect(parsed).not.toHaveProperty("roles");
+    } finally { restore(); server.close(); }
+  });
+});
+
+describe("filter children e2e", () => {
+  afterEach(() => {
+    delete process.env.NOCO_CONFIG_DIR;
+    delete process.env.NOCO_QUIET;
+    vi.restoreAllMocks();
+  });
+
+  it("filters children lists child filters", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-flt-children-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["filters", "children", "flt1", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/filters/flt1/children")).toBe(true);
+      expect(logs.join("\n")).toContain("flt_child1");
+    } finally { restore(); server.close(); }
+  });
+});
+
+describe("hook filters e2e", () => {
+  afterEach(() => {
+    delete process.env.NOCO_CONFIG_DIR;
+    delete process.env.NOCO_QUIET;
+    vi.restoreAllMocks();
+  });
+
+  it("hooks filters list returns hook filters", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-hook-flt-list-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["hooks", "filters", "list", "hk1", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/hooks/hk1/filters")).toBe(true);
+      expect(logs.join("\n")).toContain("hf1");
+    } finally { restore(); server.close(); }
+  });
+
+  it("hooks filters create posts body", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-hook-flt-create-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["hooks", "filters", "create", "hk1", "--data", '{"fk_column_id":"c1","comparison_op":"eq","value":"active"}'], configDir);
+
+      const createCall = calls.find((c) => c.method === "POST" && c.path === "/api/v2/meta/hooks/hk1/filters");
+      expect(createCall).toBeDefined();
+      expect(createCall?.body).toEqual({ fk_column_id: "c1", comparison_op: "eq", value: "active" });
+    } finally { server.close(); }
+  });
+});
+
+describe("set primary column e2e", () => {
+  afterEach(() => {
+    delete process.env.NOCO_CONFIG_DIR;
+    delete process.env.NOCO_QUIET;
+    vi.restoreAllMocks();
+  });
+
+  it("columns set-primary posts to correct endpoint", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-set-primary-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["columns", "set-primary", "c1"], configDir);
+
+      expect(calls.some((c) => c.method === "POST" && c.path === "/api/v2/meta/columns/c1/primary")).toBe(true);
+      expect(logs.join("\n")).toContain("success");
+    } finally { restore(); server.close(); }
+  });
+});
+
+describe("duplicate e2e", () => {
+  afterEach(() => {
+    delete process.env.NOCO_CONFIG_DIR;
+    delete process.env.NOCO_QUIET;
+    vi.restoreAllMocks();
+  });
+
+  it("duplicate base posts to correct endpoint", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-dup-base-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["duplicate", "base", "b1"], configDir);
+
+      expect(calls.some((c) => c.method === "POST" && c.path === "/api/v2/meta/duplicate/b1")).toBe(true);
+      expect(logs.join("\n")).toContain("job_dup_base");
+    } finally { restore(); server.close(); }
+  });
+
+  it("duplicate base with --exclude-data sends options", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-dup-base-opts-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["duplicate", "base", "b1", "--exclude-data"], configDir);
+
+      const dupCall = calls.find((c) => c.method === "POST" && c.path === "/api/v2/meta/duplicate/b1");
+      expect(dupCall).toBeDefined();
+      expect(dupCall?.body).toEqual({ options: { excludeData: true } });
+    } finally { server.close(); }
+  });
+
+  it("duplicate table posts to correct endpoint", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-dup-tbl-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["duplicate", "table", "b1", "t1"], configDir);
+
+      expect(calls.some((c) => c.method === "POST" && c.path === "/api/v2/meta/duplicate/b1/table/t1")).toBe(true);
+      expect(logs.join("\n")).toContain("job_dup_tbl");
+    } finally { restore(); server.close(); }
+  });
+
+  it("duplicate source posts to correct endpoint", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-dup-src-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["duplicate", "source", "b1", "src1"], configDir);
+
+      expect(calls.some((c) => c.method === "POST" && c.path === "/api/v2/meta/duplicate/b1/src1")).toBe(true);
+      expect(logs.join("\n")).toContain("job_dup_src");
+    } finally { restore(); server.close(); }
+  });
+});
+
+describe("visibility rules e2e", () => {
+  afterEach(() => {
+    delete process.env.NOCO_CONFIG_DIR;
+    delete process.env.NOCO_QUIET;
+    vi.restoreAllMocks();
+  });
+
+  it("visibility-rules get returns rules", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-vis-get-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["visibility-rules", "get", "b1", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/bases/b1/visibility-rules")).toBe(true);
+      expect(logs.join("\n")).toContain("Grid");
+    } finally { restore(); server.close(); }
+  });
+
+  it("visibility-rules set posts body", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-vis-set-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["visibility-rules", "set", "b1", "--data", '[{"id":"vw1","disabled":{"viewer":true}}]'], configDir);
+
+      const setCall = calls.find((c) => c.method === "POST" && c.path === "/api/v2/meta/bases/b1/visibility-rules");
+      expect(setCall).toBeDefined();
+      expect(setCall?.body).toEqual([{ id: "vw1", disabled: { viewer: true } }]);
+    } finally { server.close(); }
+  });
+});
+
+describe("app info e2e", () => {
+  afterEach(() => {
+    delete process.env.NOCO_CONFIG_DIR;
+    delete process.env.NOCO_QUIET;
+    vi.restoreAllMocks();
+  });
+
+  it("info returns server info", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-info-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["info", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/nocodb/info")).toBe(true);
+      const output = logs.join("\n");
+      expect(output).toContain("0.250.0");
+      expect(output).toContain("jwt");
     } finally { restore(); server.close(); }
   });
 });

@@ -534,4 +534,164 @@ describe("MetaApi - Typed Methods", () => {
       }
     });
   });
+
+  describe("Filter Children operations", () => {
+    it("listFilterChildren returns ListResponse<Filter>", async () => {
+      const mockResponse: ListResponse<Filter> = {
+        list: [
+          { id: "f1", fk_view_id: "v1", fk_column_id: "c1", comparison_op: "eq", value: "test" },
+        ],
+        pageInfo: { totalRows: 1 },
+      };
+      vi.spyOn(client, "request").mockResolvedValue(mockResponse);
+
+      const result = await api.listFilterChildren("fg1");
+
+      expect(result.list).toHaveLength(1);
+      expect(result.list[0].id).toBe("f1");
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/filters/fg1/children");
+    });
+  });
+
+  describe("Hook Filters operations", () => {
+    it("listHookFilters returns ListResponse<Filter>", async () => {
+      const mockResponse: ListResponse<Filter> = {
+        list: [
+          { id: "hf1", fk_view_id: "v1", comparison_op: "eq", value: "test" },
+        ],
+        pageInfo: { totalRows: 1 },
+      };
+      vi.spyOn(client, "request").mockResolvedValue(mockResponse);
+
+      const result = await api.listHookFilters("hk1");
+
+      expect(result.list).toHaveLength(1);
+      expect(result.list[0].id).toBe("hf1");
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/hooks/hk1/filters");
+    });
+
+    it("createHookFilter returns Filter", async () => {
+      const mockFilter: Filter = { id: "hf-new", fk_view_id: "v1", comparison_op: "eq", value: "test" };
+      vi.spyOn(client, "request").mockResolvedValue(mockFilter);
+
+      const body = { fk_column_id: "c1", comparison_op: "eq" as const, value: "test" };
+      const result = await api.createHookFilter("hk1", body);
+
+      expect(result.id).toBe("hf-new");
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/hooks/hk1/filters", { body });
+    });
+  });
+
+  describe("Set Primary Column operations", () => {
+    it("setColumnPrimary calls correct endpoint", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ msg: "success" });
+
+      const result = await api.setColumnPrimary("col1");
+
+      expect(result).toEqual({ msg: "success" });
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/columns/col1/primary");
+    });
+  });
+
+  describe("Duplicate operations", () => {
+    it("duplicateBase without options", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ id: "job1" });
+
+      const result = await api.duplicateBase("b1");
+
+      expect(result).toEqual({ id: "job1" });
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/duplicate/b1", {});
+    });
+
+    it("duplicateBase with options", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ id: "job1" });
+
+      const result = await api.duplicateBase("b1", { excludeData: true, excludeViews: true });
+
+      expect(result).toEqual({ id: "job1" });
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/duplicate/b1", {
+        body: { options: { excludeData: true, excludeViews: true } },
+      });
+    });
+
+    it("duplicateSource without options", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ id: "job2" });
+
+      const result = await api.duplicateSource("b1", "src1");
+
+      expect(result).toEqual({ id: "job2" });
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/duplicate/b1/src1", {});
+    });
+
+    it("duplicateSource with options", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ id: "job2" });
+
+      const result = await api.duplicateSource("b1", "src1", { excludeHooks: true });
+
+      expect(result).toEqual({ id: "job2" });
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/duplicate/b1/src1", {
+        body: { options: { excludeHooks: true } },
+      });
+    });
+
+    it("duplicateTable without options", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ id: "job3" });
+
+      const result = await api.duplicateTable("b1", "t1");
+
+      expect(result).toEqual({ id: "job3" });
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/duplicate/b1/table/t1", {});
+    });
+
+    it("duplicateTable with all options", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ id: "job3" });
+
+      const opts = { excludeData: true, excludeViews: true, excludeHooks: true };
+      const result = await api.duplicateTable("b1", "t1", opts);
+
+      expect(result).toEqual({ id: "job3" });
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/duplicate/b1/table/t1", {
+        body: { options: opts },
+      });
+    });
+  });
+
+  describe("Visibility Rules operations", () => {
+    it("getVisibilityRules returns array", async () => {
+      const mockRules = [
+        { id: "vw1", title: "Grid View", disabled: { viewer: true } },
+        { id: "vw2", title: "Form View", disabled: {} },
+      ];
+      vi.spyOn(client, "request").mockResolvedValue(mockRules);
+
+      const result = await api.getVisibilityRules("b1");
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe("vw1");
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/bases/b1/visibility-rules");
+    });
+
+    it("setVisibilityRules sends body", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ msg: "success" });
+
+      const rules = [{ id: "vw1", disabled: { viewer: true } }];
+      const result = await api.setVisibilityRules("b1", rules);
+
+      expect(result).toEqual({ msg: "success" });
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/bases/b1/visibility-rules", { body: rules });
+    });
+  });
+
+  describe("App Info operations", () => {
+    it("getAppInfo returns AppInfo", async () => {
+      const mockInfo = { version: "0.250.0", authType: "jwt", isDocker: true };
+      vi.spyOn(client, "request").mockResolvedValue(mockInfo);
+
+      const result = await api.getAppInfo();
+
+      expect(result.version).toBe("0.250.0");
+      expect(result.authType).toBe("jwt");
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/nocodb/info");
+    });
+  });
 });

@@ -136,7 +136,61 @@ nocodb views delete <viewId>
 
 Supported `--type` values: `grid` (default), `form`, `gallery`, `kanban`, `calendar`.
 
-> **Note:** View creation uses the NocoDB v1 API (`/api/v1/db/meta/tables/{id}/grids` etc.) because the v2 endpoint does not support it.
+### View Config
+
+Get or update view-type-specific configuration (form settings, gallery cover image, kanban grouping, grid row height):
+
+```sh
+nocodb views config get <viewId> --view-type form --pretty
+nocodb views config update <viewId> --view-type form -d '{"heading":"My Form"}'
+nocodb views config get <viewId> --view-type gallery
+nocodb views config update <viewId> --view-type grid -d '{"row_height":2}'
+```
+
+Supported `--view-type` values: `form`, `gallery`, `kanban` (for get), `grid`, `form`, `gallery`, `kanban` (for update).
+
+### View Columns
+
+List field visibility and order settings for a view:
+
+```sh
+nocodb views columns list <viewId> --pretty
+```
+
+## Comments
+
+Manage row comments:
+
+```sh
+nocodb comments list --table-id <tableId> --row-id <rowId>
+nocodb comments create -d '{"fk_model_id":"<tableId>","row_id":"1","comment":"Looks good!"}'
+nocodb comments update <commentId> -d '{"comment":"Updated text"}'
+nocodb comments delete <commentId>
+```
+
+## Shared Views
+
+Manage public view links:
+
+```sh
+nocodb shared-views list <tableId>
+nocodb shared-views create <viewId>
+nocodb shared-views create <viewId> -d '{"password":"secret"}'
+nocodb shared-views update <viewId> -d '{"password":"new-secret"}'
+nocodb shared-views delete <viewId>
+```
+
+## Shared Base
+
+Manage public base sharing:
+
+```sh
+nocodb shared-base get <baseId>
+nocodb shared-base create <baseId>
+nocodb shared-base create <baseId> -d '{"roles":"viewer","password":"secret"}'
+nocodb shared-base update <baseId> -d '{"roles":"editor"}'
+nocodb shared-base delete <baseId>
+```
 
 ## Filters
 
@@ -386,6 +440,10 @@ The script attempts:
 - CRUD on multiple tables
 - Link/lookup/rollup/formula column creation (best-effort, logs if unsupported)
 - Attachment upload and row update
+- Comments CRUD on a row
+- Shared views create/list/delete on a view
+- Shared base create/get/delete on the test base
+- View config get and view columns list
 - Writes a JSON summary report to `scripts/e2e-report.json`
 
 ## Error messages

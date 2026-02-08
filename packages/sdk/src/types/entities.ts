@@ -304,6 +304,200 @@ export interface BaseUser {
 }
 
 /**
+ * Represents a comment on a row.
+ */
+export interface Comment {
+  /** Unique identifier for the comment */
+  id: string;
+  /** ID of the row this comment belongs to */
+  row_id: string;
+  /** ID of the table (model) this comment belongs to */
+  fk_model_id: string;
+  /** Comment text content */
+  comment?: string;
+  /** ID of the user who created the comment */
+  created_by?: string;
+  /** Email of the user who created the comment */
+  created_by_email?: string;
+  /** ID of the user who resolved the comment */
+  resolved_by?: string;
+  /** Timestamp when the comment was created */
+  created_at?: string;
+  /** Timestamp when the comment was last updated */
+  updated_at?: string;
+}
+
+/**
+ * Represents a shared view (public link to a view).
+ */
+export interface SharedView {
+  /** Unique identifier for the shared view */
+  id: string;
+  /** ID of the view being shared */
+  fk_view_id: string;
+  /** Password protection for the shared view */
+  password?: string;
+  /** Additional metadata */
+  meta?: Record<string, unknown> | string | null;
+  /** Timestamp when the shared view was created */
+  created_at?: string;
+  /** Timestamp when the shared view was last updated */
+  updated_at?: string;
+}
+
+/**
+ * Represents a shared base (public link to an entire base).
+ */
+export interface SharedBase {
+  /** UUID for the shared base link */
+  uuid?: string;
+  /** Public URL for the shared base */
+  url?: string;
+  /** Roles granted to shared base users */
+  roles?: string;
+  /** Password protection for the shared base */
+  password?: string;
+}
+
+/**
+ * Represents a column's settings within a specific view.
+ */
+export interface ViewColumn {
+  /** Unique identifier for the view column */
+  id: string;
+  /** ID of the view */
+  fk_view_id: string;
+  /** ID of the column */
+  fk_column_id: string;
+  /** Whether the column is visible in this view */
+  show?: boolean;
+  /** Display order of the column in this view */
+  order?: number;
+  /** Column width (for grid views) */
+  width?: string;
+}
+
+/**
+ * Form view-specific configuration.
+ */
+export interface FormView {
+  /** Unique identifier */
+  id?: string;
+  /** Form heading */
+  heading?: string;
+  /** Form subheading */
+  subheading?: string;
+  /** Success message after form submission */
+  success_msg?: string;
+  /** Redirect URL after form submission */
+  redirect_url?: string;
+  /** Whether to show a banner image */
+  banner_image_url?: string;
+  /** Whether to show the logo */
+  logo_url?: string;
+  /** Additional metadata */
+  meta?: Record<string, unknown> | string | null;
+}
+
+/**
+ * Gallery view-specific configuration.
+ */
+export interface GalleryView {
+  /** Unique identifier */
+  id?: string;
+  /** ID of the cover image column */
+  fk_cover_image_col_id?: string;
+  /** Additional metadata */
+  meta?: Record<string, unknown> | string | null;
+}
+
+/**
+ * Kanban view-specific configuration.
+ */
+export interface KanbanView {
+  /** Unique identifier */
+  id?: string;
+  /** ID of the grouping column */
+  fk_grp_col_id?: string;
+  /** ID of the cover image column */
+  fk_cover_image_col_id?: string;
+  /** Additional metadata */
+  meta?: Record<string, unknown> | string | null;
+}
+
+/**
+ * Grid view-specific configuration.
+ */
+export interface GridView {
+  /** Unique identifier */
+  id?: string;
+  /** Row height setting */
+  row_height?: number;
+  /** Additional metadata */
+  meta?: Record<string, unknown> | string | null;
+}
+
+/**
+ * NocoDB server application info.
+ */
+export interface AppInfo {
+  /** NocoDB version */
+  version?: string;
+  /** Authentication type */
+  authType?: string;
+  /** Whether the instance is a Docker deployment */
+  isDocker?: boolean;
+  /** Default language */
+  defaultLanguage?: string;
+  /** Project page default limit */
+  projectPageDefaultLimit?: number;
+  /** Whether invite-only signup is enabled */
+  inviteOnlySignup?: boolean;
+  /** Type of the NocoDB instance */
+  type?: string;
+  /** First user email (if applicable) */
+  firstUser?: string;
+  /** Whether telemetry is enabled */
+  telemetry?: boolean;
+  /** Whether audit is enabled */
+  auditEnabled?: boolean;
+  /** Additional properties */
+  [key: string]: unknown;
+}
+
+/**
+ * Visibility rule for a view (UI ACL).
+ */
+export interface VisibilityRule {
+  /** View ID */
+  id?: string;
+  /** View title */
+  title?: string;
+  /** Table ID */
+  fk_model_id?: string;
+  /** View type */
+  type?: number;
+  /** Whether the view is disabled for the role */
+  disabled?: Record<string, boolean>;
+  /** Display order */
+  order?: number;
+  /** Additional properties */
+  [key: string]: unknown;
+}
+
+/**
+ * Options for duplicate operations.
+ */
+export interface DuplicateOptions {
+  /** Exclude row data from the duplicate */
+  excludeData?: boolean;
+  /** Exclude views from the duplicate */
+  excludeViews?: boolean;
+  /** Exclude hooks/webhooks from the duplicate */
+  excludeHooks?: boolean;
+}
+
+/**
  * Represents a row of data in a table.
  * 
  * Rows have an Id field and arbitrary additional fields based on the table schema.

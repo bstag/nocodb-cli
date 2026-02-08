@@ -11,6 +11,17 @@ import type {
   Hook,
   ApiToken,
   BaseUser,
+  Comment,
+  SharedView,
+  SharedBase,
+  ViewColumn,
+  FormView,
+  GalleryView,
+  KanbanView,
+  GridView,
+  AppInfo,
+  VisibilityRule,
+  DuplicateOptions,
   ListResponse,
 } from '@nocodb/sdk';
 
@@ -815,6 +826,405 @@ export class MetaService {
    */
   async removeBaseUser(baseId: string, userId: string): Promise<void> {
     return this.client.request<void>('DELETE', `/api/v2/meta/bases/${baseId}/users/${userId}`);
+  }
+
+  // ============================================================================
+  // Comment Operations
+  // ============================================================================
+
+  /**
+   * List comments for a specific row.
+   *
+   * @param tableId - Table ID (fk_model_id)
+   * @param rowId - Row ID
+   * @returns List of comments
+   */
+  async listComments(tableId: string, rowId: string): Promise<ListResponse<Comment>> {
+    return this.client.request<ListResponse<Comment>>('GET', '/api/v2/meta/comments', {
+      query: { fk_model_id: tableId, row_id: rowId },
+    });
+  }
+
+  /**
+   * Create a comment on a row.
+   *
+   * @param data - Comment data (fk_model_id, row_id, comment are required)
+   * @returns Created comment
+   */
+  async createComment(data: Partial<Comment>): Promise<Comment> {
+    return this.client.request<Comment>('POST', '/api/v2/meta/comments', { body: data });
+  }
+
+  /**
+   * Update a comment.
+   *
+   * @param commentId - Comment ID
+   * @param data - Updated comment data
+   * @returns Updated comment
+   */
+  async updateComment(commentId: string, data: Partial<Comment>): Promise<Comment> {
+    return this.client.request<Comment>('PATCH', `/api/v2/meta/comment/${commentId}`, { body: data });
+  }
+
+  /**
+   * Delete a comment.
+   *
+   * @param commentId - Comment ID
+   */
+  async deleteComment(commentId: string): Promise<void> {
+    return this.client.request<void>('DELETE', `/api/v2/meta/comment/${commentId}`);
+  }
+
+  // ============================================================================
+  // Shared View Operations
+  // ============================================================================
+
+  /**
+   * List shared views for a table.
+   *
+   * @param tableId - Table ID
+   * @returns List of shared views
+   */
+  async listSharedViews(tableId: string): Promise<ListResponse<SharedView>> {
+    return this.client.request<ListResponse<SharedView>>('GET', `/api/v2/meta/tables/${tableId}/share`);
+  }
+
+  /**
+   * Create a shared view (public link) for a view.
+   *
+   * @param viewId - View ID
+   * @param data - Optional shared view properties (password, meta)
+   * @returns Created shared view
+   */
+  async createSharedView(viewId: string, data?: Partial<SharedView>): Promise<SharedView> {
+    return this.client.request<SharedView>('POST', `/api/v2/meta/views/${viewId}/share`, data ? { body: data } : {});
+  }
+
+  /**
+   * Update a shared view's properties.
+   *
+   * @param viewId - View ID whose share to update
+   * @param data - Properties to update (password, meta)
+   * @returns Updated shared view
+   */
+  async updateSharedView(viewId: string, data: Partial<SharedView>): Promise<SharedView> {
+    return this.client.request<SharedView>('PATCH', `/api/v2/meta/views/${viewId}/share`, { body: data });
+  }
+
+  /**
+   * Delete a shared view (remove public link).
+   *
+   * @param viewId - View ID whose share to delete
+   */
+  async deleteSharedView(viewId: string): Promise<void> {
+    return this.client.request<void>('DELETE', `/api/v2/meta/views/${viewId}/share`);
+  }
+
+  // ============================================================================
+  // Shared Base Operations
+  // ============================================================================
+
+  /**
+   * Get shared base info (uuid, url, roles).
+   *
+   * @param baseId - Base ID
+   * @returns Shared base info
+   */
+  async getSharedBase(baseId: string): Promise<SharedBase> {
+    return this.client.request<SharedBase>('GET', `/api/v2/meta/bases/${baseId}/shared`);
+  }
+
+  /**
+   * Create a shared base (enable public sharing).
+   *
+   * @param baseId - Base ID
+   * @param data - Shared base properties (roles, password)
+   * @returns Created shared base
+   */
+  async createSharedBase(baseId: string, data?: Partial<SharedBase>): Promise<SharedBase> {
+    return this.client.request<SharedBase>('POST', `/api/v2/meta/bases/${baseId}/shared`, data ? { body: data } : {});
+  }
+
+  /**
+   * Update a shared base's properties.
+   *
+   * @param baseId - Base ID
+   * @param data - Properties to update (roles, password)
+   * @returns Updated shared base
+   */
+  async updateSharedBase(baseId: string, data: Partial<SharedBase>): Promise<SharedBase> {
+    return this.client.request<SharedBase>('PATCH', `/api/v2/meta/bases/${baseId}/shared`, { body: data });
+  }
+
+  /**
+   * Disable shared base (remove public sharing).
+   *
+   * @param baseId - Base ID
+   */
+  async deleteSharedBase(baseId: string): Promise<void> {
+    return this.client.request<void>('DELETE', `/api/v2/meta/bases/${baseId}/shared`);
+  }
+
+  // ============================================================================
+  // View-Type-Specific Operations
+  // ============================================================================
+
+  /**
+   * Create a grid view for a table (v2 endpoint).
+   *
+   * @param tableId - Table ID
+   * @param data - View data (title is required)
+   * @returns Created view
+   */
+  async createGridView(tableId: string, data: Partial<View>): Promise<View> {
+    return this.client.request<View>('POST', `/api/v2/meta/tables/${tableId}/grids`, { body: data });
+  }
+
+  /**
+   * Create a form view for a table (v2 endpoint).
+   *
+   * @param tableId - Table ID
+   * @param data - View data (title is required)
+   * @returns Created view
+   */
+  async createFormView(tableId: string, data: Partial<View>): Promise<View> {
+    return this.client.request<View>('POST', `/api/v2/meta/tables/${tableId}/forms`, { body: data });
+  }
+
+  /**
+   * Create a gallery view for a table (v2 endpoint).
+   *
+   * @param tableId - Table ID
+   * @param data - View data (title is required)
+   * @returns Created view
+   */
+  async createGalleryView(tableId: string, data: Partial<View>): Promise<View> {
+    return this.client.request<View>('POST', `/api/v2/meta/tables/${tableId}/galleries`, { body: data });
+  }
+
+  /**
+   * Create a kanban view for a table (v2 endpoint).
+   *
+   * @param tableId - Table ID
+   * @param data - View data (title is required)
+   * @returns Created view
+   */
+  async createKanbanView(tableId: string, data: Partial<View>): Promise<View> {
+    return this.client.request<View>('POST', `/api/v2/meta/tables/${tableId}/kanbans`, { body: data });
+  }
+
+  /**
+   * Get form view-specific configuration.
+   *
+   * @param formViewId - Form view ID
+   * @returns Form view config
+   */
+  async getFormView(formViewId: string): Promise<FormView> {
+    return this.client.request<FormView>('GET', `/api/v2/meta/forms/${formViewId}`);
+  }
+
+  /**
+   * Update form view-specific configuration.
+   *
+   * @param formViewId - Form view ID
+   * @param data - Form-specific properties to update
+   * @returns Updated form view config
+   */
+  async updateFormView(formViewId: string, data: Partial<FormView>): Promise<FormView> {
+    return this.client.request<FormView>('PATCH', `/api/v2/meta/forms/${formViewId}`, { body: data });
+  }
+
+  /**
+   * Get gallery view-specific configuration.
+   *
+   * @param galleryViewId - Gallery view ID
+   * @returns Gallery view config
+   */
+  async getGalleryView(galleryViewId: string): Promise<GalleryView> {
+    return this.client.request<GalleryView>('GET', `/api/v2/meta/galleries/${galleryViewId}`);
+  }
+
+  /**
+   * Update gallery view-specific configuration.
+   *
+   * @param galleryViewId - Gallery view ID
+   * @param data - Gallery-specific properties to update
+   * @returns Updated gallery view config
+   */
+  async updateGalleryView(galleryViewId: string, data: Partial<GalleryView>): Promise<GalleryView> {
+    return this.client.request<GalleryView>('PATCH', `/api/v2/meta/galleries/${galleryViewId}`, { body: data });
+  }
+
+  /**
+   * Get kanban view-specific configuration.
+   *
+   * @param kanbanViewId - Kanban view ID
+   * @returns Kanban view config
+   */
+  async getKanbanView(kanbanViewId: string): Promise<KanbanView> {
+    return this.client.request<KanbanView>('GET', `/api/v2/meta/kanbans/${kanbanViewId}`);
+  }
+
+  /**
+   * Update kanban view-specific configuration.
+   *
+   * @param kanbanViewId - Kanban view ID
+   * @param data - Kanban-specific properties to update
+   * @returns Updated kanban view config
+   */
+  async updateKanbanView(kanbanViewId: string, data: Partial<KanbanView>): Promise<KanbanView> {
+    return this.client.request<KanbanView>('PATCH', `/api/v2/meta/kanbans/${kanbanViewId}`, { body: data });
+  }
+
+  /**
+   * Update grid view-specific configuration.
+   *
+   * @param gridViewId - Grid view ID
+   * @param data - Grid-specific properties to update
+   * @returns Updated grid view config
+   */
+  async updateGridView(gridViewId: string, data: Partial<GridView>): Promise<GridView> {
+    return this.client.request<GridView>('PATCH', `/api/v2/meta/grids/${gridViewId}`, { body: data });
+  }
+
+  /**
+   * List columns for a view (field visibility/order settings).
+   *
+   * @param viewId - View ID
+   * @returns List of view columns
+   */
+  async listViewColumns(viewId: string): Promise<ListResponse<ViewColumn>> {
+    return this.client.request<ListResponse<ViewColumn>>('GET', `/api/v2/meta/views/${viewId}/columns`);
+  }
+
+  // ============================================================================
+  // Filter Children (Nested Filter Groups)
+  // ============================================================================
+
+  /**
+   * List child filters of a filter group.
+   *
+   * @param filterGroupId - Parent filter group ID
+   * @returns List of child filters
+   */
+  async listFilterChildren(filterGroupId: string): Promise<ListResponse<Filter>> {
+    return this.client.request<ListResponse<Filter>>('GET', `/api/v2/meta/filters/${filterGroupId}/children`);
+  }
+
+  // ============================================================================
+  // Hook Filter Operations
+  // ============================================================================
+
+  /**
+   * List filters for a hook (webhook).
+   *
+   * @param hookId - Hook ID
+   * @returns List of hook filters
+   */
+  async listHookFilters(hookId: string): Promise<ListResponse<Filter>> {
+    return this.client.request<ListResponse<Filter>>('GET', `/api/v2/meta/hooks/${hookId}/filters`);
+  }
+
+  /**
+   * Create a filter for a hook (webhook).
+   *
+   * @param hookId - Hook ID
+   * @param data - Filter data
+   * @returns Created filter
+   */
+  async createHookFilter(hookId: string, data: Partial<Filter>): Promise<Filter> {
+    return this.client.request<Filter>('POST', `/api/v2/meta/hooks/${hookId}/filters`, { body: data });
+  }
+
+  // ============================================================================
+  // Column: Set Primary
+  // ============================================================================
+
+  /**
+   * Set a column as the primary/display column for its table.
+   *
+   * @param columnId - Column ID
+   * @returns Result
+   */
+  async setColumnPrimary(columnId: string): Promise<unknown> {
+    return this.client.request<unknown>('POST', `/api/v2/meta/columns/${columnId}/primary`);
+  }
+
+  // ============================================================================
+  // Duplicate Operations
+  // ============================================================================
+
+  /**
+   * Duplicate a base.
+   *
+   * @param baseId - Base ID
+   * @param options - Optional duplicate options
+   * @returns Duplicate operation result
+   */
+  async duplicateBase(baseId: string, options?: DuplicateOptions): Promise<unknown> {
+    return this.client.request<unknown>('POST', `/api/v2/meta/duplicate/${baseId}`, options ? { body: { options } } : {});
+  }
+
+  /**
+   * Duplicate a base source.
+   *
+   * @param baseId - Base ID
+   * @param sourceId - Source ID
+   * @param options - Optional duplicate options
+   * @returns Duplicate operation result
+   */
+  async duplicateSource(baseId: string, sourceId: string, options?: DuplicateOptions): Promise<unknown> {
+    return this.client.request<unknown>('POST', `/api/v2/meta/duplicate/${baseId}/${sourceId}`, options ? { body: { options } } : {});
+  }
+
+  /**
+   * Duplicate a table within a base.
+   *
+   * @param baseId - Base ID
+   * @param tableId - Table ID
+   * @param options - Optional duplicate options
+   * @returns Duplicate operation result
+   */
+  async duplicateTable(baseId: string, tableId: string, options?: DuplicateOptions): Promise<unknown> {
+    return this.client.request<unknown>('POST', `/api/v2/meta/duplicate/${baseId}/table/${tableId}`, options ? { body: { options } } : {});
+  }
+
+  // ============================================================================
+  // Visibility Rules (UI ACL)
+  // ============================================================================
+
+  /**
+   * Get view visibility rules for a base (UI ACL).
+   *
+   * @param baseId - Base ID
+   * @returns Visibility rules
+   */
+  async getVisibilityRules(baseId: string): Promise<VisibilityRule[]> {
+    return this.client.request<VisibilityRule[]>('GET', `/api/v2/meta/bases/${baseId}/visibility-rules`);
+  }
+
+  /**
+   * Set view visibility rules for a base (UI ACL).
+   *
+   * @param baseId - Base ID
+   * @param data - Visibility rules to set
+   * @returns Result
+   */
+  async setVisibilityRules(baseId: string, data: VisibilityRule[]): Promise<unknown> {
+    return this.client.request<unknown>('POST', `/api/v2/meta/bases/${baseId}/visibility-rules`, { body: data });
+  }
+
+  // ============================================================================
+  // App Info
+  // ============================================================================
+
+  /**
+   * Get NocoDB server application info (version, etc.).
+   *
+   * @returns App info
+   */
+  async getAppInfo(): Promise<AppInfo> {
+    return this.client.request<AppInfo>('GET', '/api/v2/meta/nocodb/info');
   }
 
   // ============================================================================

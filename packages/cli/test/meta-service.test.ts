@@ -694,6 +694,526 @@ describe('MetaService', () => {
   });
 
   // ============================================================================
+  // Comment Operations Tests
+  // ============================================================================
+
+  describe('Comment Operations', () => {
+    it('should list comments for a row', async () => {
+      const mockResponse = {
+        list: [
+          { id: 'cmt_1', row_id: '1', fk_model_id: 'tbl123', comment: 'Hello' },
+          { id: 'cmt_2', row_id: '1', fk_model_id: 'tbl123', comment: 'World' },
+        ],
+        pageInfo: { totalRows: 2 },
+      };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.listComments('tbl123', '1');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/comments', {
+        query: { fk_model_id: 'tbl123', row_id: '1' },
+      });
+    });
+
+    it('should create a comment', async () => {
+      const commentData = { fk_model_id: 'tbl123', row_id: '1', comment: 'New comment' };
+      const mockResponse = { id: 'cmt_new', ...commentData };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createComment(commentData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/comments', { body: commentData });
+    });
+
+    it('should update a comment', async () => {
+      const updateData = { comment: 'Updated text' };
+      const mockResponse = { id: 'cmt_1', row_id: '1', fk_model_id: 'tbl123', comment: 'Updated text' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.updateComment('cmt_1', updateData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('PATCH', '/api/v2/meta/comment/cmt_1', { body: updateData });
+    });
+
+    it('should delete a comment', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue(undefined);
+
+      await metaService.deleteComment('cmt_1');
+
+      expect(mockClient.request).toHaveBeenCalledWith('DELETE', '/api/v2/meta/comment/cmt_1');
+    });
+  });
+
+  // ============================================================================
+  // Shared View Operations Tests
+  // ============================================================================
+
+  describe('Shared View Operations', () => {
+    it('should list shared views for a table', async () => {
+      const mockResponse = {
+        list: [
+          { id: 'sv_1', fk_view_id: 'vw_123' },
+          { id: 'sv_2', fk_view_id: 'vw_456' },
+        ],
+        pageInfo: { totalRows: 2 },
+      };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.listSharedViews('tbl123');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/tables/tbl123/share');
+    });
+
+    it('should create a shared view without body', async () => {
+      const mockResponse = { id: 'sv_new', fk_view_id: 'vw_123' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createSharedView('vw_123');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/views/vw_123/share', {});
+    });
+
+    it('should create a shared view with password', async () => {
+      const body = { password: 'secret' };
+      const mockResponse = { id: 'sv_new', fk_view_id: 'vw_123', password: 'secret' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createSharedView('vw_123', body as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/views/vw_123/share', { body });
+    });
+
+    it('should update a shared view', async () => {
+      const updateData = { password: 'new-secret' };
+      const mockResponse = { id: 'sv_1', fk_view_id: 'vw_123', password: 'new-secret' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.updateSharedView('vw_123', updateData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('PATCH', '/api/v2/meta/views/vw_123/share', { body: updateData });
+    });
+
+    it('should delete a shared view', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue(undefined);
+
+      await metaService.deleteSharedView('vw_123');
+
+      expect(mockClient.request).toHaveBeenCalledWith('DELETE', '/api/v2/meta/views/vw_123/share');
+    });
+  });
+
+  // ============================================================================
+  // Shared Base Operations Tests
+  // ============================================================================
+
+  describe('Shared Base Operations', () => {
+    it('should get shared base info', async () => {
+      const mockResponse = { uuid: 'abc-123', url: 'https://app.nocodb.com/shared/abc-123', roles: 'viewer' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.getSharedBase('base123');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/bases/base123/shared');
+    });
+
+    it('should create a shared base without body', async () => {
+      const mockResponse = { uuid: 'abc-123', url: 'https://app.nocodb.com/shared/abc-123', roles: 'viewer' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createSharedBase('base123');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/bases/base123/shared', {});
+    });
+
+    it('should create a shared base with roles and password', async () => {
+      const body = { roles: 'editor', password: 'secret' };
+      const mockResponse = { uuid: 'abc-123', roles: 'editor', password: 'secret' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createSharedBase('base123', body as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/bases/base123/shared', { body });
+    });
+
+    it('should update a shared base', async () => {
+      const updateData = { roles: 'editor' };
+      const mockResponse = { uuid: 'abc-123', roles: 'editor' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.updateSharedBase('base123', updateData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('PATCH', '/api/v2/meta/bases/base123/shared', { body: updateData });
+    });
+
+    it('should delete a shared base', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue(undefined);
+
+      await metaService.deleteSharedBase('base123');
+
+      expect(mockClient.request).toHaveBeenCalledWith('DELETE', '/api/v2/meta/bases/base123/shared');
+    });
+  });
+
+  // ============================================================================
+  // View-Type-Specific Operations Tests
+  // ============================================================================
+
+  describe('View-Type-Specific Operations', () => {
+    it('should create a grid view via v2 endpoint', async () => {
+      const viewData = { title: 'My Grid' };
+      const mockResponse = { id: 'vw_grid', title: 'My Grid', type: 'grid', fk_model_id: 'tbl123' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createGridView('tbl123', viewData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/tables/tbl123/grids', { body: viewData });
+    });
+
+    it('should create a form view via v2 endpoint', async () => {
+      const viewData = { title: 'My Form' };
+      const mockResponse = { id: 'vw_form', title: 'My Form', type: 'form', fk_model_id: 'tbl123' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createFormView('tbl123', viewData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/tables/tbl123/forms', { body: viewData });
+    });
+
+    it('should create a gallery view via v2 endpoint', async () => {
+      const viewData = { title: 'My Gallery' };
+      const mockResponse = { id: 'vw_gal', title: 'My Gallery', type: 'gallery', fk_model_id: 'tbl123' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createGalleryView('tbl123', viewData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/tables/tbl123/galleries', { body: viewData });
+    });
+
+    it('should create a kanban view via v2 endpoint', async () => {
+      const viewData = { title: 'My Kanban' };
+      const mockResponse = { id: 'vw_kan', title: 'My Kanban', type: 'kanban', fk_model_id: 'tbl123' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createKanbanView('tbl123', viewData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/tables/tbl123/kanbans', { body: viewData });
+    });
+
+    it('should get form view config', async () => {
+      const mockResponse = { id: 'fv_1', heading: 'My Form', subheading: 'Fill this out' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.getFormView('vw_form');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/forms/vw_form');
+    });
+
+    it('should update form view config', async () => {
+      const updateData = { heading: 'Updated Form' };
+      const mockResponse = { id: 'fv_1', heading: 'Updated Form' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.updateFormView('vw_form', updateData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('PATCH', '/api/v2/meta/forms/vw_form', { body: updateData });
+    });
+
+    it('should get gallery view config', async () => {
+      const mockResponse = { id: 'gv_1', fk_cover_image_col_id: 'col_img' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.getGalleryView('vw_gal');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/galleries/vw_gal');
+    });
+
+    it('should update gallery view config', async () => {
+      const updateData = { fk_cover_image_col_id: 'col_new' };
+      const mockResponse = { id: 'gv_1', fk_cover_image_col_id: 'col_new' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.updateGalleryView('vw_gal', updateData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('PATCH', '/api/v2/meta/galleries/vw_gal', { body: updateData });
+    });
+
+    it('should get kanban view config', async () => {
+      const mockResponse = { id: 'kv_1', fk_grp_col_id: 'col_status' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.getKanbanView('vw_kan');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/kanbans/vw_kan');
+    });
+
+    it('should update kanban view config', async () => {
+      const updateData = { fk_grp_col_id: 'col_priority' };
+      const mockResponse = { id: 'kv_1', fk_grp_col_id: 'col_priority' };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.updateKanbanView('vw_kan', updateData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('PATCH', '/api/v2/meta/kanbans/vw_kan', { body: updateData });
+    });
+
+    it('should update grid view config', async () => {
+      const updateData = { row_height: 2 };
+      const mockResponse = { id: 'grd_1', row_height: 2 };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.updateGridView('vw_grid', updateData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('PATCH', '/api/v2/meta/grids/vw_grid', { body: updateData });
+    });
+
+    it('should list view columns', async () => {
+      const mockResponse = {
+        list: [
+          { id: 'vc_1', fk_view_id: 'vw_123', fk_column_id: 'col_1', show: true, order: 1 },
+          { id: 'vc_2', fk_view_id: 'vw_123', fk_column_id: 'col_2', show: false, order: 2 },
+        ],
+        pageInfo: { totalRows: 2 },
+      };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.listViewColumns('vw_123');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/views/vw_123/columns');
+    });
+  });
+
+  // ============================================================================
+  // Filter Children Tests
+  // ============================================================================
+
+  describe('Filter Children Operations', () => {
+    it('should list filter children', async () => {
+      const mockResponse = {
+        list: [
+          { id: 'flt_child1', fk_view_id: 'vw_1', fk_column_id: 'col_1', comparison_op: 'eq', value: 'test' },
+        ],
+        pageInfo: { totalRows: 1 },
+      };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.listFilterChildren('flt_group1');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/filters/flt_group1/children');
+    });
+  });
+
+  // ============================================================================
+  // Hook Filter Tests
+  // ============================================================================
+
+  describe('Hook Filter Operations', () => {
+    it('should list hook filters', async () => {
+      const mockResponse = {
+        list: [
+          { id: 'hf_1', fk_view_id: 'vw_1', comparison_op: 'eq', value: 'test' },
+        ],
+        pageInfo: { totalRows: 1 },
+      };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.listHookFilters('hk_123');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/hooks/hk_123/filters');
+    });
+
+    it('should create a hook filter', async () => {
+      const filterData = { fk_column_id: 'col_1', comparison_op: 'eq' as const, value: 'active' };
+      const mockResponse = { id: 'hf_new', ...filterData };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.createHookFilter('hk_123', filterData as any);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/hooks/hk_123/filters', { body: filterData });
+    });
+  });
+
+  // ============================================================================
+  // Set Primary Column Tests
+  // ============================================================================
+
+  describe('Set Primary Column Operations', () => {
+    it('should set column as primary', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue({ msg: 'success' });
+
+      const result = await metaService.setColumnPrimary('col_123');
+
+      expect(result).toEqual({ msg: 'success' });
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/columns/col_123/primary');
+    });
+  });
+
+  // ============================================================================
+  // Duplicate Operations Tests
+  // ============================================================================
+
+  describe('Duplicate Operations', () => {
+    it('should duplicate a base without options', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue({ id: 'job_1' });
+
+      const result = await metaService.duplicateBase('base123');
+
+      expect(result).toEqual({ id: 'job_1' });
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/duplicate/base123', {});
+    });
+
+    it('should duplicate a base with options', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue({ id: 'job_1' });
+
+      const result = await metaService.duplicateBase('base123', { excludeData: true });
+
+      expect(result).toEqual({ id: 'job_1' });
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/duplicate/base123', {
+        body: { options: { excludeData: true } },
+      });
+    });
+
+    it('should duplicate a source without options', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue({ id: 'job_2' });
+
+      const result = await metaService.duplicateSource('base123', 'src_456');
+
+      expect(result).toEqual({ id: 'job_2' });
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/duplicate/base123/src_456', {});
+    });
+
+    it('should duplicate a source with options', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue({ id: 'job_2' });
+
+      const result = await metaService.duplicateSource('base123', 'src_456', { excludeHooks: true });
+
+      expect(result).toEqual({ id: 'job_2' });
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/duplicate/base123/src_456', {
+        body: { options: { excludeHooks: true } },
+      });
+    });
+
+    it('should duplicate a table without options', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue({ id: 'job_3' });
+
+      const result = await metaService.duplicateTable('base123', 'tbl_789');
+
+      expect(result).toEqual({ id: 'job_3' });
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/duplicate/base123/table/tbl_789', {});
+    });
+
+    it('should duplicate a table with all options', async () => {
+      vi.mocked(mockClient.request).mockResolvedValue({ id: 'job_3' });
+
+      const opts = { excludeData: true, excludeViews: true, excludeHooks: true };
+      const result = await metaService.duplicateTable('base123', 'tbl_789', opts);
+
+      expect(result).toEqual({ id: 'job_3' });
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/duplicate/base123/table/tbl_789', {
+        body: { options: opts },
+      });
+    });
+  });
+
+  // ============================================================================
+  // Visibility Rules Tests
+  // ============================================================================
+
+  describe('Visibility Rules Operations', () => {
+    it('should get visibility rules', async () => {
+      const mockResponse = [
+        { id: 'vw_1', title: 'Grid View', disabled: { viewer: true } },
+        { id: 'vw_2', title: 'Form View', disabled: {} },
+      ];
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.getVisibilityRules('base123');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/bases/base123/visibility-rules');
+    });
+
+    it('should set visibility rules', async () => {
+      const rules = [{ id: 'vw_1', disabled: { viewer: true } }];
+      vi.mocked(mockClient.request).mockResolvedValue({ msg: 'success' });
+
+      const result = await metaService.setVisibilityRules('base123', rules as any);
+
+      expect(result).toEqual({ msg: 'success' });
+      expect(mockClient.request).toHaveBeenCalledWith('POST', '/api/v2/meta/bases/base123/visibility-rules', { body: rules });
+    });
+  });
+
+  // ============================================================================
+  // App Info Tests
+  // ============================================================================
+
+  describe('App Info Operations', () => {
+    it('should get app info', async () => {
+      const mockResponse = { version: '0.250.0', authType: 'jwt', isDocker: true };
+
+      vi.mocked(mockClient.request).mockResolvedValue(mockResponse);
+
+      const result = await metaService.getAppInfo();
+
+      expect(result).toEqual(mockResponse);
+      expect(mockClient.request).toHaveBeenCalledWith('GET', '/api/v2/meta/nocodb/info');
+    });
+  });
+
+  // ============================================================================
   // Swagger Operations Tests
   // ============================================================================
 

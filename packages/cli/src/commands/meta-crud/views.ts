@@ -25,6 +25,9 @@ Examples:
   $ nocodb views create tbl_xyz -d '{"title":"My Grid"}' --type grid
   $ nocodb views update vw_abc -d '{"title":"Renamed"}'
   $ nocodb views delete vw_abc
+  $ nocodb views config get vw_abc --view-type form
+  $ nocodb views config update vw_abc --view-type form -d '{"heading":"My Form"}'
+  $ nocodb views columns list vw_abc
 `);
 
   // List views command
@@ -67,7 +70,7 @@ Examples:
     }
   );
 
-  // Create view command
+  // Create view command — dispatches to v2 type-specific endpoints
   addOutputOptions(addJsonInputOptions(
     viewsCmd.command("create").argument("tableId", "Table id")
       .option("--type <type>", "View type: grid, form, gallery, kanban, calendar (default: grid)")
@@ -84,7 +87,23 @@ Examples:
 
         const body = await parseJsonInput(options.data, options.dataFile);
         const viewType = (options.type || 'grid') as ViewType;
-        const result = await metaService.createView(tableId, body, viewType);
+
+        let result;
+        switch (viewType) {
+          case 'form':
+            result = await metaService.createFormView(tableId, body as any);
+            break;
+          case 'gallery':
+            result = await metaService.createGalleryView(tableId, body as any);
+            break;
+          case 'kanban':
+            result = await metaService.createKanbanView(tableId, body as any);
+            break;
+          case 'grid':
+          default:
+            result = await metaService.createGridView(tableId, body as any);
+            break;
+        }
         printResult(result, options);
       } catch (err) {
         handleError(err);
@@ -105,7 +124,7 @@ Examples:
         const metaService = metaServiceFactory(client) as MetaService;
 
         const body = await parseJsonInput(options.data, options.dataFile);
-        const result = await metaService.updateView(viewId, body);
+        const result = await metaService.updateView(viewId, body as any);
         printResult(result, options);
       } catch (err) {
         handleError(err);
@@ -126,6 +145,120 @@ Examples:
         const metaService = metaServiceFactory(client) as MetaService;
 
         const result = await metaService.deleteView(viewId);
+        printResult(result, options);
+      } catch (err) {
+        handleError(err);
+      }
+    }
+  );
+
+  // ── View Config subcommands ─────────────────────────────────────
+
+  const configCmd = viewsCmd.command("config").description("Manage view-type-specific configuration");
+
+  // Get view config
+  addOutputOptions(
+    configCmd
+      .command("get")
+      .argument("viewId", "View id")
+      .requiredOption("--view-type <type>", "View type: form, gallery, kanban")
+  ).action(
+    async (viewId: string, options: OutputOptions & { viewType: string }) => {
+      try {
+        const configManager = container.get<ConfigManager>("configManager");
+        const createClient = container.get<Function>("createClient");
+        const metaServiceFactory = container.get<Function>("metaService");
+
+        const { workspace, settings } = configManager.getEffectiveConfig({});
+        const client = createClient(workspace, settings) as NocoClient;
+        const metaService = metaServiceFactory(client) as MetaService;
+
+        let result;
+        switch (options.viewType) {
+          case 'form':
+            result = await metaService.getFormView(viewId);
+            break;
+          case 'gallery':
+            result = await metaService.getGalleryView(viewId);
+            break;
+          case 'kanban':
+            result = await metaService.getKanbanView(viewId);
+            break;
+          default:
+            throw new Error(`Unsupported view type '${options.viewType}'. Use: form, gallery, kanban`);
+        }
+        printResult(result, options);
+      } catch (err) {
+        handleError(err);
+      }
+    }
+  );
+
+  // Update view config
+  addOutputOptions(
+    addJsonInputOptions(
+      configCmd
+        .command("update")
+        .argument("viewId", "View id")
+        .requiredOption("--view-type <type>", "View type: grid, form, gallery, kanban")
+    )
+  ).action(
+    async (viewId: string, options: JsonInputOptions & OutputOptions & { viewType: string }) => {
+      try {
+        const configManager = container.get<ConfigManager>("configManager");
+        const createClient = container.get<Function>("createClient");
+        const metaServiceFactory = container.get<Function>("metaService");
+
+        const { workspace, settings } = configManager.getEffectiveConfig({});
+        const client = createClient(workspace, settings) as NocoClient;
+        const metaService = metaServiceFactory(client) as MetaService;
+
+        const body = await parseJsonInput(options.data, options.dataFile);
+        let result;
+        switch (options.viewType) {
+          case 'grid':
+            result = await metaService.updateGridView(viewId, body as any);
+            break;
+          case 'form':
+            result = await metaService.updateFormView(viewId, body as any);
+            break;
+          case 'gallery':
+            result = await metaService.updateGalleryView(viewId, body as any);
+            break;
+          case 'kanban':
+            result = await metaService.updateKanbanView(viewId, body as any);
+            break;
+          default:
+            throw new Error(`Unsupported view type '${options.viewType}'. Use: grid, form, gallery, kanban`);
+        }
+        printResult(result, options);
+      } catch (err) {
+        handleError(err);
+      }
+    }
+  );
+
+  // ── View Columns subcommand ─────────────────────────────────────
+
+  const columnsCmd = viewsCmd.command("columns").description("Manage view column settings");
+
+  // List view columns
+  addOutputOptions(
+    columnsCmd
+      .command("list")
+      .argument("viewId", "View id")
+  ).action(
+    async (viewId: string, options: OutputOptions) => {
+      try {
+        const configManager = container.get<ConfigManager>("configManager");
+        const createClient = container.get<Function>("createClient");
+        const metaServiceFactory = container.get<Function>("metaService");
+
+        const { workspace, settings } = configManager.getEffectiveConfig({});
+        const client = createClient(workspace, settings) as NocoClient;
+        const metaService = metaServiceFactory(client) as MetaService;
+
+        const result = await metaService.listViewColumns(viewId);
         printResult(result, options);
       } catch (err) {
         handleError(err);

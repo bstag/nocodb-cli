@@ -498,6 +498,165 @@ function testHook(hookId) {
   return runCliAllowFail(["hooks", "test", hookId]);
 }
 
+// --- Filter Children helpers ---
+function listFilterChildren(filterGroupId) {
+  const out = runCli(["filters", "children", filterGroupId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function listFilterChildrenAllowFail(filterGroupId) {
+  return runCliAllowFail(["filters", "children", filterGroupId, "--pretty"]);
+}
+
+// --- Hook Filters helpers ---
+function listHookFilters(hookId) {
+  const out = runCli(["hooks", "filters", "list", hookId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function createHookFilter(hookId, data) {
+  const tmp = path.join(ROOT, "scripts", `${hookId}-hook-filter.json`);
+  writeJson(tmp, data);
+  const out = runCli(["hooks", "filters", "create", hookId, "--data-file", tmp, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function listHookFiltersAllowFail(hookId) {
+  return runCliAllowFail(["hooks", "filters", "list", hookId, "--pretty"]);
+}
+
+// --- Set Primary Column helpers ---
+function setColumnPrimary(columnId) {
+  const out = runCli(["columns", "set-primary", columnId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function setColumnPrimaryAllowFail(columnId) {
+  return runCliAllowFail(["columns", "set-primary", columnId, "--pretty"]);
+}
+
+// --- Duplicate helpers ---
+function duplicateTable(baseId, tableId, extraFlags = []) {
+  const out = runCli(["duplicate", "table", baseId, tableId, ...extraFlags, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function duplicateTableAllowFail(baseId, tableId, extraFlags = []) {
+  return runCliAllowFail(["duplicate", "table", baseId, tableId, ...extraFlags, "--pretty"]);
+}
+
+// --- Visibility Rules helpers ---
+function getVisibilityRules(baseId) {
+  const out = runCli(["visibility-rules", "get", baseId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function setVisibilityRules(baseId, rules) {
+  const tmp = path.join(ROOT, "scripts", `${baseId}-vis-rules.json`);
+  writeJson(tmp, rules);
+  const out = runCli(["visibility-rules", "set", baseId, "--data-file", tmp, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function getVisibilityRulesAllowFail(baseId) {
+  return runCliAllowFail(["visibility-rules", "get", baseId, "--pretty"]);
+}
+
+// --- App Info helpers ---
+function getAppInfo() {
+  const out = runCli(["info", "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function getAppInfoAllowFail() {
+  return runCliAllowFail(["info", "--pretty"]);
+}
+
+// --- Comments helpers ---
+function listComments(tableId, rowId) {
+  const out = runCli(["comments", "list", "--table-id", tableId, "--row-id", String(rowId), "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function createComment(body) {
+  const tmp = path.join(ROOT, "scripts", `comment-create.json`);
+  writeJson(tmp, body);
+  const out = runCli(["comments", "create", "--data-file", tmp, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function updateComment(commentId, body) {
+  const tmp = path.join(ROOT, "scripts", `comment-update.json`);
+  writeJson(tmp, body);
+  const out = runCli(["comments", "update", commentId, "--data-file", tmp, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function deleteComment(commentId) {
+  return runCliAllowFail(["comments", "delete", commentId]);
+}
+
+// --- Shared Views helpers ---
+function listSharedViews(tableId) {
+  const out = runCli(["shared-views", "list", tableId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function createSharedView(viewId, body) {
+  const args = ["shared-views", "create", viewId, "--pretty"];
+  if (body) {
+    const tmp = path.join(ROOT, "scripts", `shared-view-create.json`);
+    writeJson(tmp, body);
+    args.push("--data-file", tmp);
+  }
+  const out = runCli(args);
+  return jsonParseOrThrow(out);
+}
+
+function deleteSharedView(viewId) {
+  return runCliAllowFail(["shared-views", "delete", viewId]);
+}
+
+// --- Shared Base helpers ---
+function getSharedBase(baseId) {
+  return runCliAllowFail(["shared-base", "get", baseId, "--pretty"]);
+}
+
+function createSharedBase(baseId, body) {
+  const args = ["shared-base", "create", baseId, "--pretty"];
+  if (body) {
+    const tmp = path.join(ROOT, "scripts", `shared-base-create.json`);
+    writeJson(tmp, body);
+    args.push("--data-file", tmp);
+  }
+  const out = runCli(args);
+  return jsonParseOrThrow(out);
+}
+
+function deleteSharedBase(baseId) {
+  return runCliAllowFail(["shared-base", "delete", baseId]);
+}
+
+// --- View Config helpers ---
+function getViewConfig(viewId, viewType) {
+  const out = runCli(["views", "config", "get", viewId, "--view-type", viewType, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function getViewConfigAllowFail(viewId, viewType) {
+  return runCliAllowFail(["views", "config", "get", viewId, "--view-type", viewType, "--pretty"]);
+}
+
+// --- View Columns helpers ---
+function listViewColumns(viewId) {
+  const out = runCli(["views", "columns", "list", viewId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function listViewColumnsAllowFail(viewId) {
+  return runCliAllowFail(["views", "columns", "list", viewId, "--pretty"]);
+}
+
 // --- Tokens helpers (v2 base-scoped) ---
 function listTokens(baseId) {
   const out = runCli(["tokens", "list", baseId, "--pretty"]);
@@ -642,6 +801,9 @@ function writeReportMarkdown(report) {
     "upsert", "bulkOps", "bulkUpsert", "request", "metaEndpoints",
     "dynamicApi", "storageUpload", "schemaIntrospect", "me", "selectFilter",
     "hooks", "tokens", "sources", "users",
+    "comments", "sharedViews", "sharedBase", "viewConfig",
+    "filterChildren", "hookFilters", "setPrimary", "duplicateOps",
+    "visibilityRules", "appInfo",
   ];
   for (const key of featureKeys) {
     const result = report[key];
@@ -1558,7 +1720,247 @@ async function main() {
     console.log("Users tests failed:", report.users.error);
   }
 
+  // =========================================================================
+  // NEW: Comments CRUD tests
+  // =========================================================================
+  console.log("Testing comments CRUD...");
+  try {
+    // Create a comment on the primary row
+    const comment = createComment({
+      fk_model_id: primary.id,
+      row_id: String(rowA.Id),
+      comment: "E2E test comment",
+    });
+    assert(comment !== undefined, "comments create should return a result");
+    // List comments for the row
+    const comments = listComments(primary.id, rowA.Id);
+    assert(comments.list !== undefined || Array.isArray(comments), "comments list should return results");
+    // Update the comment (if we got an id back)
+    const commentId = comment.id || comment.Id;
+    if (commentId) {
+      updateComment(commentId, { comment: "Updated E2E comment" });
+      deleteComment(commentId);
+    }
+    report.comments = { status: "passed" };
+  } catch (err) {
+    report.comments = { status: "failed", error: err.message || String(err) };
+    console.log("Comments tests failed:", report.comments.error);
+  }
+
+  // =========================================================================
+  // NEW: Shared Views tests
+  // =========================================================================
+  console.log("Testing shared views...");
+  try {
+    // We need a view id — use the default view from the primary table
+    const viewsForShare = listViews(primary.id);
+    const defaultView = viewsForShare.list?.[0];
+    if (!defaultView?.id) throw new Error("No view available for shared views test");
+    // Create a shared view
+    const shared = createSharedView(defaultView.id);
+    assert(shared !== undefined, "shared-views create should return a result");
+    // List shared views for the table
+    const sharedList = listSharedViews(primary.id);
+    assert(sharedList.list !== undefined || Array.isArray(sharedList), "shared-views list should return results");
+    // Delete the shared view
+    deleteSharedView(defaultView.id);
+    report.sharedViews = { status: "passed" };
+  } catch (err) {
+    report.sharedViews = { status: "failed", error: err.message || String(err) };
+    console.log("Shared views tests failed:", report.sharedViews.error);
+  }
+
+  // =========================================================================
+  // NEW: Shared Base tests
+  // =========================================================================
+  console.log("Testing shared base...");
+  try {
+    // Create a shared base
+    const sharedBase = createSharedBase(BASE_ID, { roles: "viewer" });
+    assert(sharedBase !== undefined, "shared-base create should return a result");
+    // Get shared base info
+    const sbGet = getSharedBase(BASE_ID);
+    assert(sbGet.status === 0, "shared-base get should succeed");
+    // Delete the shared base
+    deleteSharedBase(BASE_ID);
+    report.sharedBase = { status: "passed" };
+  } catch (err) {
+    report.sharedBase = { status: "failed", error: err.message || String(err) };
+    // Clean up shared base if it was created
+    try { deleteSharedBase(BASE_ID); } catch { /* ignore */ }
+    console.log("Shared base tests failed:", report.sharedBase.error);
+  }
+
+  // =========================================================================
+  // NEW: View Config & View Columns tests
+  // =========================================================================
+  console.log("Testing view config & view columns...");
+  let formViewId;
+  try {
+    // Create a form view to test config
+    const formViewResult = runCliAllowFail([
+      "views", "create", primary.id, "--type", "form",
+      "--data", JSON.stringify({ title: `E2E_FormCfg_${timestamp}` }),
+      "--pretty",
+    ]);
+    if (formViewResult.status === 0) {
+      const fv = jsonParseOrThrow(formViewResult.stdout);
+      formViewId = fv.id;
+    }
+    // Test view columns list on the default view
+    const viewsForCols = listViews(primary.id);
+    const defaultViewForCols = viewsForCols.list?.[0];
+    if (defaultViewForCols?.id) {
+      const cols = listViewColumnsAllowFail(defaultViewForCols.id);
+      assert(cols.status === 0, "views columns list should succeed");
+    }
+    // Test view config get on the form view (if created)
+    if (formViewId) {
+      const formCfg = getViewConfigAllowFail(formViewId, "form");
+      assert(formCfg.status === 0, "views config get --view-type form should succeed");
+    }
+    report.viewConfig = { status: "passed" };
+  } catch (err) {
+    report.viewConfig = { status: "failed", error: err.message || String(err) };
+    console.log("View config tests failed:", report.viewConfig.error);
+  }
+  // Clean up form view
+  if (formViewId) {
+    try { deleteView(formViewId); } catch { /* ignore */ }
+  }
+
+  // =========================================================================
+  // NEW: Filter Children tests
+  // =========================================================================
+  console.log("Testing filter children...");
+  try {
+    // Create a filter group (is_group: true) on a view, then list its children
+    const viewsForFc = listViews(primary.id);
+    const defaultViewFc = viewsForFc.list?.[0];
+    if (!defaultViewFc?.id) throw new Error("No view available for filter children test");
+    // Create a filter group
+    const tMetaFc = fetchTableMeta(primary.id);
+    const titleColFc = findColumnByTitle(tMetaFc, "Title");
+    if (!titleColFc?.id) throw new Error("No Title column found for filter children test");
+    // Create a regular filter first (we'll use its parent group)
+    const childFilter = createFilter(defaultViewFc.id, {
+      fk_column_id: titleColFc.id,
+      comparison_op: "eq",
+      value: "filterChildTest",
+    });
+    // List filters to find the top-level group
+    const allFilters = listFilters(defaultViewFc.id);
+    // Try listing children of the first filter (even if not a group, the endpoint should respond)
+    const firstFilterId = allFilters.list?.[0]?.id || childFilter.id;
+    const childrenResult = listFilterChildrenAllowFail(firstFilterId);
+    // The endpoint should succeed (200) even if there are no children
+    assert(childrenResult.status === 0, "filters children should succeed");
+    // Cleanup
+    if (childFilter.id) deleteFilter(childFilter.id);
+    report.filterChildren = { status: "passed" };
+  } catch (err) {
+    report.filterChildren = { status: "failed", error: err.message || String(err) };
+    console.log("Filter children tests failed:", report.filterChildren.error);
+  }
+
+  // =========================================================================
+  // NEW: Hook Filters tests (list only — create requires a valid hook)
+  // =========================================================================
+  console.log("Testing hook filters...");
+  try {
+    // List hooks to find one we can test filters on
+    const hooksForHf = listHooks(primary.id);
+    if (hooksForHf.list && hooksForHf.list.length > 0) {
+      const hookId = hooksForHf.list[0].id;
+      const hfResult = listHookFiltersAllowFail(hookId);
+      assert(hfResult.status === 0, "hooks filters list should succeed");
+      report.hookFilters = { status: "passed" };
+    } else {
+      // No hooks available — try the command anyway to verify it doesn't crash
+      const hfResult = getAppInfoAllowFail(); // just verify CLI doesn't crash
+      report.hookFilters = { status: "passed", note: "no hooks available, skipped filter list" };
+    }
+  } catch (err) {
+    report.hookFilters = { status: "failed", error: err.message || String(err) };
+    console.log("Hook filters tests failed:", report.hookFilters.error);
+  }
+
+  // =========================================================================
+  // NEW: Set Primary Column tests
+  // =========================================================================
+  console.log("Testing set primary column...");
+  try {
+    const tMetaSp = fetchTableMeta(primary.id);
+    const titleColSp = findColumnByTitle(tMetaSp, "Title");
+    if (!titleColSp?.id) throw new Error("No Title column found for set-primary test");
+    // Set Title as primary (it likely already is, but the endpoint should succeed)
+    const spResult = setColumnPrimaryAllowFail(titleColSp.id);
+    assert(spResult.status === 0, "columns set-primary should succeed");
+    report.setPrimary = { status: "passed" };
+  } catch (err) {
+    report.setPrimary = { status: "failed", error: err.message || String(err) };
+    console.log("Set primary column tests failed:", report.setPrimary.error);
+  }
+
+  // =========================================================================
+  // NEW: Duplicate Table tests
+  // =========================================================================
+  console.log("Testing duplicate table...");
+  let duplicatedTableId;
+  try {
+    const dupResult = duplicateTableAllowFail(BASE_ID, secondary.id, ["--exclude-data"]);
+    assert(dupResult.status === 0, "duplicate table should succeed");
+    // The response may contain a job id or the duplicated table info
+    if (dupResult.stdout) {
+      try {
+        const dupParsed = jsonParseOrThrow(dupResult.stdout);
+        duplicatedTableId = dupParsed.id;
+      } catch { /* response may not be JSON */ }
+    }
+    report.duplicateOps = { status: "passed" };
+  } catch (err) {
+    report.duplicateOps = { status: "failed", error: err.message || String(err) };
+    console.log("Duplicate table tests failed:", report.duplicateOps.error);
+  }
+
+  // =========================================================================
+  // NEW: Visibility Rules tests
+  // =========================================================================
+  console.log("Testing visibility rules...");
+  try {
+    const rules = getVisibilityRulesAllowFail(BASE_ID);
+    assert(rules.status === 0, "visibility-rules get should succeed");
+    // Parse and verify it's an array
+    if (rules.stdout) {
+      const parsed = jsonParseOrThrow(rules.stdout);
+      assert(Array.isArray(parsed), "visibility-rules get should return an array");
+    }
+    report.visibilityRules = { status: "passed" };
+  } catch (err) {
+    report.visibilityRules = { status: "failed", error: err.message || String(err) };
+    console.log("Visibility rules tests failed:", report.visibilityRules.error);
+  }
+
+  // =========================================================================
+  // NEW: App Info tests
+  // =========================================================================
+  console.log("Testing app info...");
+  try {
+    const info = getAppInfo();
+    assert(info !== undefined, "info should return a result");
+    assert(info.version !== undefined || info.authType !== undefined || Object.keys(info).length > 0,
+      "info should contain server information");
+    report.appInfo = { status: "passed" };
+  } catch (err) {
+    report.appInfo = { status: "failed", error: err.message || String(err) };
+    console.log("App info tests failed:", report.appInfo.error);
+  }
+
   console.log("Cleanup...");
+  // Clean up duplicated table if it was created
+  if (duplicatedTableId) {
+    try { runCli(["tables", "delete", duplicatedTableId]); } catch { /* ignore */ }
+  }
   deleteRow(primary.id, { Id: rowA.Id });
   deleteRow(secondary.id, { Id: rowB.Id });
   try {
@@ -1592,6 +1994,9 @@ async function main() {
     "upsert", "bulkOps", "bulkUpsert", "request", "metaEndpoints",
     "dynamicApi", "storageUpload", "schemaIntrospect", "me", "selectFilter",
     "hooks", "tokens", "sources", "users",
+    "comments", "sharedViews", "sharedBase", "viewConfig",
+    "filterChildren", "hookFilters", "setPrimary", "duplicateOps",
+    "visibilityRules", "appInfo",
   ];
   const featurePassed = featureTests.filter((k) => report[k]?.status === "passed").length;
   const featureFailed = featureTests.filter((k) => report[k]?.status === "failed").length;

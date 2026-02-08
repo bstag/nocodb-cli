@@ -30,6 +30,15 @@ import { registerHooksCommands } from "./commands/hooks.js";
 import { registerTokensCommands } from "./commands/tokens.js";
 import { registerUsersCommands } from "./commands/users.js";
 import { registerSourcesCommands } from "./commands/sources.js";
+import { registerCommentsCommands } from "./commands/comments.js";
+import { registerSharedViewsCommands } from "./commands/shared-views.js";
+import { registerSharedBaseCommands } from "./commands/shared-base.js";
+import { registerFilterChildrenCommands } from "./commands/filter-children.js";
+import { registerHookFiltersCommands } from "./commands/hook-filters.js";
+import { registerSetPrimaryCommands } from "./commands/set-primary.js";
+import { registerDuplicateCommands } from "./commands/duplicate.js";
+import { registerVisibilityRulesCommands } from "./commands/visibility-rules.js";
+import { registerAppInfoCommand } from "./commands/app-info.js";
 import { ConfigManager } from "./config/manager.js";
 import { createContainer, type Container } from "./container.js";
 
@@ -176,6 +185,17 @@ function registerCommands(): void {
   registerTokensCommands(program, container);
   registerUsersCommands(program, container);
   registerSourcesCommands(program, container);
+  registerCommentsCommands(program, container);
+  registerSharedViewsCommands(program, container);
+  registerSharedBaseCommands(program, container);
+  registerDuplicateCommands(program, container);
+  registerVisibilityRulesCommands(program, container);
+  registerAppInfoCommand(program, container);
+  
+  // Subcommands that attach to existing command groups (must come after parent registration)
+  registerFilterChildrenCommands(program, container);
+  registerHookFiltersCommands(program, container);
+  registerSetPrimaryCommands(program, container);
 }
 
 /**
