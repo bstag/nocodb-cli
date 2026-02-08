@@ -29,6 +29,34 @@ nocodb workspace list     # show all workspaces, active marked with *
 nocodb workspace show     # show current workspace config
 ```
 
+## Cloud Workspaces (☁ NocoDB Cloud Only)
+
+Manage workspaces on NocoDB Cloud (`app.nocodb.com`). These commands are nested under `workspace cloud` to avoid collision with local workspace management above.
+
+```sh
+# List / get
+nocodb workspace cloud list
+nocodb workspace cloud get <workspaceId>
+
+# Create / update / delete
+nocodb workspace cloud create -d '{"title":"My Workspace"}'
+nocodb workspace cloud update <workspaceId> -d '{"title":"Renamed"}'
+nocodb workspace cloud delete <workspaceId>
+
+# Workspace users
+nocodb workspace cloud users <workspaceId>
+nocodb workspace cloud user-get <workspaceId> <userId>
+nocodb workspace cloud invite <workspaceId> -d '{"email":"bob@test.com","roles":"viewer"}'
+nocodb workspace cloud user-update <workspaceId> <userId> -d '{"roles":"editor"}'
+nocodb workspace cloud user-remove <workspaceId> <userId>
+
+# Workspace bases
+nocodb workspace cloud bases <workspaceId>
+nocodb workspace cloud create-base <workspaceId> -d '{"title":"New Base"}'
+```
+
+> **Note:** These endpoints only work when connected to NocoDB Cloud. Self-hosted NocoDB does not have workspace APIs.
+
 ## Aliases (Namespaced IDs)
 
 Aliases allow you to use friendly names instead of UUIDs. They are namespaced by workspace.
@@ -444,6 +472,7 @@ The script attempts:
 - Shared views create/list/delete on a view
 - Shared base create/get/delete on the test base
 - View config get and view columns list
+- Cloud workspace list/get/users/bases (gracefully skipped on self-hosted instances)
 - Writes a JSON summary report to `scripts/e2e-report.json`
 
 ## Error messages

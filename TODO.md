@@ -142,8 +142,6 @@
 
 - Swagger parsing assumes specific NocoDB path format
 - No automatic cache invalidation strategy
-- ~~View creation requires v1 API (v2 doesn't support it)~~ ✅ Fixed — migrated to v2 type-specific endpoints
-- ~~No env var fallback for config~~ ✅ Fixed — `NOCO_TOKEN`, `NOCO_BASE_URL`, `NOCO_BASE_ID` supported
 
 ### Recent Fixes
 
@@ -157,7 +155,7 @@
 
 ## API Gaps vs. v2 Meta OpenAPI Spec
 
-Comparison of `openapi/v2/nocodb-meta-v2-openapi.json` against SDK and CLI. All 13 identified gaps are resolved (12 implemented, 2 deferred).
+Comparison of `openapi/v2/nocodb-meta-v2-openapi.json` against SDK and CLI. All 13 identified gaps are resolved (13 implemented, 1 deferred).
 
 ### Completed Gaps
 
