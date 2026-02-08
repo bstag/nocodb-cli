@@ -17,7 +17,15 @@ import {
 } from "../../utils/command-utils.js";
 
 export function registerTablesCommands(program: Command, container: Container): void {
-  const tablesCmd = program.command("tables").description("Manage tables");
+  const tablesCmd = program.command("tables").description("Manage tables")
+    .addHelpText("after", `
+Examples:
+  $ nocodb tables list p_abc123
+  $ nocodb tables get tbl_xyz
+  $ nocodb tables create p_abc123 -d '{"table_name":"Tasks"}'
+  $ nocodb tables update tbl_xyz -d '{"table_name":"Renamed"}'
+  $ nocodb tables delete tbl_xyz
+`);
 
   // List tables command
   addOutputOptions(tablesCmd.command("list").argument("baseId", "Base id or alias")).action(

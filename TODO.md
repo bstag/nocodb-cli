@@ -13,19 +13,22 @@
 - **Sorts** — list, create, get, update, delete
 - **Columns** — list, create, get, update, delete
 - **Links** — listLinks, linkRecords, unlinkRecords (`DataApi`)
+- **Hooks** — listHooks, createHook, getHook, updateHook, deleteHook, testHook
+- **Tokens** — listTokens, createToken, deleteToken
+- **Base Users** — listBaseUsers, inviteBaseUser, updateBaseUser, removeBaseUser
 - **Swagger** — getBaseSwagger
 - **Storage** — uploadAttachment
 - **Schema** — introspectTable (returns full table schema with columns, primary key, display value, relations)
 - **Pagination** — `NocoClient.fetchAllPages<T>()` auto-fetches all pages of any paginated endpoint
 - **Low-level** — `NocoClient.request<T>()`, `parseHeader()`, `normalizeBaseUrl()`
 - **Typed responses** — all methods use generics (e.g., `Promise<ListResponse<Base>>`, `Promise<Table>`)
-- **Typed entities** — `Base`, `Table`, `View`, `Column`, `Filter`, `Sort`, `Row`, `ViewType`, `ColumnType`
+- **Typed entities** — `Base`, `Table`, `View`, `Column`, `Filter`, `Sort`, `Row`, `Hook`, `ApiToken`, `BaseUser`, `ViewType`, `ColumnType`
 - **Typed errors** — `AuthenticationError`, `NotFoundError`, `ConflictError`, `ValidationError`, `NetworkError`
 - **Retry/timeout** — configurable via `RetryOptions` and `timeoutMs`
 
 ### CLI (`packages/cli/src/`)
 
-60+ commands including:
+70+ commands including:
 
 - **Config** — `config set/get/show`
 - **Headers** — `header set/delete/list`
@@ -40,6 +43,9 @@
 - **Links** — `links list/create/delete`
 - **Storage** — `storage upload <filePath>`
 - **Schema** — `schema introspect <tableId>` (discover columns, primary key, display value, relations)
+- **Hooks** — `hooks list/get/create/update/delete/test` (webhook management)
+- **Tokens** — `tokens list/create/delete` (API token management)
+- **Users** — `users list/invite/update/remove` (base collaborator management)
 - **Meta** — `meta swagger/endpoints/cache clear`
 - **Dynamic API** — `--base <id> api <tag> <operation>` auto-generated from Swagger
 - **Settings** — `settings show/path/set/reset` (timeout, retry count, retry delay, retry status codes)
@@ -74,8 +80,8 @@
 ### SDK Gaps
 
 - ~~**No pagination helpers** — no cursor/offset wrappers for large result sets~~ ✅ Done
-- **No user/auth APIs** — no profile, token management, or invitation endpoints
-- **No webhook/automation APIs** — no hook creation or management
+- ~~**No user/auth APIs** — no profile, token management, or invitation endpoints~~ ✅ SDK+CLI Done — `tokens list/create/delete`, `users list/invite/update/remove`, `me` ⚠️ e2e blocked: tokens requires session auth (401 with xc-token), users response format needs investigation
+- ~~**No webhook/automation APIs** — no hook creation or management~~ ✅ SDK+CLI Done — `hooks list/get/create/update/delete/test` ⚠️ e2e blocked: hook v2 create returns 400 "deprecated / not supported" — needs v3 webhook API migration
 - **No NocoDB workspace/org APIs** — no NocoDB-level workspace CRUD or member management (distinct from CLI workspaces)
 - **No audit log APIs** — no activity or change tracking
 - ~~**No export/import APIs** — no CSV/JSON export or import~~ ✅ Done (client-side via `data export` / `data import`)
@@ -85,7 +91,7 @@
 
 - ~~**No `nocodb me`** — no quick way to verify auth/identity~~ ✅ Done
 - ~~**No env var support for config** — no `NOCO_TOKEN`, `NOCO_BASE_URL` env vars for CI/CD~~ ✅ Done
-- **No help examples** — commands lack inline usage examples
+- ~~**No help examples** — commands lack inline usage examples~~ ✅ Done
 - ~~**No `--select` field filtering** — no way to pick specific fields from output~~ ✅ Done
 
 ---
@@ -98,7 +104,7 @@
 | 2 | ~~Env var support for all config options~~ | ~~~30 lines~~ | ~~Medium~~ | ✅ Done — `NOCO_TOKEN`, `NOCO_BASE_URL`, `NOCO_BASE_ID` |
 | 3 | ~~Pagination helpers (auto-fetch all pages)~~ | ~~~60 lines~~ | ~~Medium~~ | ✅ Done — `--all` flag + `fetchAllPages()` |
 | 4 | ~~`--select` field filtering on output~~ | ~~~40 lines~~ | ~~Medium~~ | ✅ Done — `--select id,title` on all commands |
-| 5 | Inline help examples on commands | ~100 lines | Low | Better developer experience |
+| 5 | ~~Inline help examples on commands~~ | ~~\~100 lines~~ | ~~Low~~ | ✅ Done — all commands have `addHelpText` examples |
 
 ---
 

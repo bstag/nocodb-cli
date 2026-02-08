@@ -22,7 +22,15 @@ export function registerWorkspaceAliasCommands(program: Command, container: Cont
   const configManager = container.get<ConfigManager>("configManager");
 
   // Workspace commands
-  const workspaceCmd = program.command("workspace").description("Manage NocoDB workspaces (URL, Token, BaseID)");
+  const workspaceCmd = program.command("workspace").description("Manage NocoDB workspaces (URL, Token, BaseID)")
+    .addHelpText("after", `
+Examples:
+  $ nocodb workspace add prod https://noco.example.com xc-token-abc --base p_123
+  $ nocodb workspace use prod
+  $ nocodb workspace list
+  $ nocodb workspace show
+  $ nocodb workspace delete staging
+`);
 
   // Add workspace command
   workspaceCmd
@@ -128,7 +136,15 @@ export function registerWorkspaceAliasCommands(program: Command, container: Cont
     });
 
   // Alias commands
-  const aliasCmd = program.command("alias").description("Manage ID aliases (Namespaced)");
+  const aliasCmd = program.command("alias").description("Manage ID aliases (Namespaced)")
+    .addHelpText("after", `
+Examples:
+  $ nocodb alias set tasks tbl_xyz
+  $ nocodb alias set prod.tasks tbl_xyz
+  $ nocodb alias list
+  $ nocodb alias delete tasks
+  $ nocodb alias clear
+`);
 
   // Set alias command
   aliasCmd

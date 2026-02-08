@@ -23,7 +23,12 @@ import {
  * @param container - Dependency injection container
  */
 export function registerSchemaCommands(program: Command, container: Container): void {
-  const schemaCmd = program.command("schema").description("Introspect table structures");
+  const schemaCmd = program.command("schema").description("Introspect table structures")
+    .addHelpText("after", `
+Examples:
+  $ nocodb schema introspect tbl_xyz
+  $ nocodb schema introspect tbl_xyz --pretty
+`);
 
   // Introspect table command
   addOutputOptions(

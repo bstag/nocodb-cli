@@ -15,7 +15,15 @@ import type { SwaggerService } from "../services/swagger-service.js";
  */
 export function registerMetaCommands(program: Command, container: Container): void {
   const swaggerService = container.get<SwaggerService>("swaggerService");
-  const metaCmd = program.command("meta").description("Meta utilities");
+  const metaCmd = program.command("meta").description("Meta utilities")
+    .addHelpText("after", `
+Examples:
+  $ nocodb meta swagger p_abc123
+  $ nocodb meta swagger p_abc123 --out swagger.json --pretty
+  $ nocodb meta endpoints p_abc123
+  $ nocodb meta endpoints p_abc123 --tag Rows
+  $ nocodb meta cache clear
+`);
 
   addOutputOptions(
     metaCmd

@@ -22,7 +22,13 @@ import {
  * @param container - Dependency injection container
  */
 export function registerLinksCommands(program: Command, container: Container): void {
-  const linksCmd = program.command("links").description("Manage linked records");
+  const linksCmd = program.command("links").description("Manage linked records")
+    .addHelpText("after", `
+Examples:
+  $ nocodb links list tbl_xyz fld_link1 rec_1
+  $ nocodb links create tbl_xyz fld_link1 rec_1 -d '[{"Id":"rec_2"}]'
+  $ nocodb links delete tbl_xyz fld_link1 rec_1 -d '[{"Id":"rec_2"}]'
+`);
 
   // List links command
   addOutputOptions(

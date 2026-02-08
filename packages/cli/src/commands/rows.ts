@@ -30,7 +30,19 @@ import {
  * @param container - Dependency injection container
  */
 export function registerRowsCommands(program: Command, container: Container): void {
-  const rowsCmd = program.command("rows").description("Table row CRUD (base-scoped)");
+  const rowsCmd = program.command("rows").description("Table row CRUD (base-scoped)")
+    .addHelpText("after", `
+Examples:
+  $ nocodb rows list tbl_xyz
+  $ nocodb rows list tbl_xyz --all
+  $ nocodb rows list tbl_xyz -q where=(Status,eq,Active)
+  $ nocodb rows read tbl_xyz rec_1
+  $ nocodb rows create tbl_xyz -d '{"Title":"New row"}'
+  $ nocodb rows update tbl_xyz rec_1 -d '{"Title":"Updated"}'
+  $ nocodb rows delete tbl_xyz rec_1
+  $ nocodb rows bulk-create tbl_xyz -d '[{"Title":"A"},{"Title":"B"}]'
+  $ nocodb rows upsert tbl_xyz --match Title -d '[{"Title":"A","Status":"Done"}]'
+`);
 
   // List rows command
   addOutputOptions(

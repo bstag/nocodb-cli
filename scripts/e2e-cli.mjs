@@ -465,6 +465,62 @@ function meRaw(extraFlags = []) {
   return runCliAllowFail(["me", ...extraFlags]);
 }
 
+// --- Hooks helpers ---
+function listHooks(tableId) {
+  const out = runCli(["hooks", "list", tableId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function createHook(tableId, data) {
+  const tmp = path.join(ROOT, "scripts", `${tableId}-hook.json`);
+  writeJson(tmp, data);
+  const out = runCli(["hooks", "create", tableId, "--data-file", tmp, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function getHook(hookId) {
+  const out = runCli(["hooks", "get", hookId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function updateHook(hookId, data) {
+  const tmp = path.join(ROOT, "scripts", `${hookId}-hook-update.json`);
+  writeJson(tmp, data);
+  const out = runCli(["hooks", "update", hookId, "--data-file", tmp, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function deleteHook(hookId) {
+  return runCliAllowFail(["hooks", "delete", hookId]);
+}
+
+function testHook(hookId) {
+  return runCliAllowFail(["hooks", "test", hookId]);
+}
+
+// --- Tokens helpers ---
+function listTokens() {
+  const out = runCli(["tokens", "list", "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function createToken(data) {
+  const tmp = path.join(ROOT, "scripts", `token-create.json`);
+  writeJson(tmp, data);
+  const out = runCli(["tokens", "create", "--data-file", tmp, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function deleteToken(token) {
+  return runCliAllowFail(["tokens", "delete", token]);
+}
+
+// --- Users helpers ---
+function listUsers(baseId) {
+  const out = runCli(["users", "list", baseId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
 // --- Workspace/Alias helpers ---
 function workspaceAdd(name, url, token, baseId) {
   const args = ["workspace", "add", name, url, token];
@@ -574,6 +630,7 @@ function writeReportMarkdown(report) {
     "workspace", "bases", "tablesExtra", "views", "filters", "sorts",
     "upsert", "bulkOps", "bulkUpsert", "request", "metaEndpoints",
     "dynamicApi", "storageUpload", "schemaIntrospect", "me", "selectFilter",
+    "hooks", "users",
   ];
   for (const key of featureKeys) {
     const result = report[key];
@@ -1427,6 +1484,37 @@ async function main() {
     console.log("--select tests failed:", report.selectFilter.error);
   }
 
+  // =========================================================================
+  // NEW: Hooks — list only (create/update/delete blocked by v2 deprecation)
+  // =========================================================================
+  console.log("Testing hooks list...");
+  try {
+    const hooks = listHooks(primary.id);
+    assert(hooks.list !== undefined, "hooks list should return a list");
+    report.hooks = { status: "passed" };
+  } catch (err) {
+    report.hooks = { status: "failed", error: err.message || String(err) };
+    console.log("Hooks tests failed:", report.hooks.error);
+  }
+
+  // =========================================================================
+  // NEW: Users (Base Collaborators) — list only
+  // =========================================================================
+  console.log("Testing users list...");
+  try {
+    const usersRaw = runCli(["users", "list", BASE_ID, "--pretty"]);
+    const usersResult = jsonParseOrThrow(usersRaw);
+    const userList = usersResult.list || usersResult.users || (Array.isArray(usersResult) ? usersResult : undefined);
+    assert(userList !== undefined, "users list should return a list");
+    assert(userList.length > 0, "users list should have at least one user");
+    const firstUser = userList[0];
+    assert(firstUser.email !== undefined, "user should have an email");
+    report.users = { status: "passed" };
+  } catch (err) {
+    report.users = { status: "failed", error: err.message || String(err) };
+    console.log("Users tests failed:", report.users.error);
+  }
+
   console.log("Cleanup...");
   deleteRow(primary.id, { Id: rowA.Id });
   deleteRow(secondary.id, { Id: rowB.Id });
@@ -1460,6 +1548,7 @@ async function main() {
     "workspace", "bases", "tablesExtra", "views", "filters", "sorts",
     "upsert", "bulkOps", "bulkUpsert", "request", "metaEndpoints",
     "dynamicApi", "storageUpload", "schemaIntrospect", "me", "selectFilter",
+    "hooks", "users",
   ];
   const featurePassed = featureTests.filter((k) => report[k]?.status === "passed").length;
   const featureFailed = featureTests.filter((k) => report[k]?.status === "failed").length;

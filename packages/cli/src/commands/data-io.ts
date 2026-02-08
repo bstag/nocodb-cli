@@ -24,7 +24,16 @@ import { parseCsv, getBaseIdFromArgv } from "../utils/parsing.js";
  * @param container - Dependency injection container
  */
 export function registerDataIoCommands(program: Command, container: Container): void {
-  const dataCmd = program.command("data").description("Import and export table data");
+  const dataCmd = program.command("data").description("Import and export table data")
+    .addHelpText("after", `
+Examples:
+  $ nocodb data export tbl_xyz
+  $ nocodb data export tbl_xyz -o rows.csv
+  $ nocodb data export tbl_xyz --format json -o rows.json
+  $ nocodb data import tbl_xyz rows.csv
+  $ nocodb data import tbl_xyz rows.json --match Title
+  $ nocodb data import tbl_xyz rows.json --match Title --update-only
+`);
 
   // --- export ---
   dataCmd

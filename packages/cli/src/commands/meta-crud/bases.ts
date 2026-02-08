@@ -30,7 +30,16 @@ import {
  * @param container - Dependency injection container
  */
 export function registerBasesCommands(program: Command, container: Container): void {
-  const basesCmd = program.command("bases").description("Manage bases");
+  const basesCmd = program.command("bases").description("Manage bases")
+    .addHelpText("after", `
+Examples:
+  $ nocodb bases list
+  $ nocodb bases get p_abc123
+  $ nocodb bases info p_abc123
+  $ nocodb bases create -d '{"title":"My Base"}'
+  $ nocodb bases update p_abc123 -d '{"title":"Renamed"}'
+  $ nocodb bases delete p_abc123
+`);
 
   // List bases command
   addOutputOptions(basesCmd.command("list")).action(async (options: OutputOptions) => {

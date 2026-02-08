@@ -17,7 +17,15 @@ import {
 } from "../../utils/command-utils.js";
 
 export function registerFiltersCommands(program: Command, container: Container): void {
-  const filtersCmd = program.command("filters").description("Manage view filters");
+  const filtersCmd = program.command("filters").description("Manage view filters")
+    .addHelpText("after", `
+Examples:
+  $ nocodb filters list vw_abc
+  $ nocodb filters get flt_123
+  $ nocodb filters create vw_abc -d '{"fk_column_id":"cl_x","comparison_op":"eq","value":"Active"}'
+  $ nocodb filters update flt_123 -d '{"value":"Done"}'
+  $ nocodb filters delete flt_123
+`);
 
   addOutputOptions(filtersCmd.command("list").argument("viewId", "View id")).action(
     async (viewId: string, options: OutputOptions) => {

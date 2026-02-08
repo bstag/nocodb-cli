@@ -17,6 +17,11 @@ import { printResult, handleError, resolveServices, type OutputOptions } from ".
 export function registerMeCommand(program: Command, container: Container): void {
   addOutputOptions(
     program.command("me").description("Show current authenticated user (auth sanity check)")
+      .addHelpText("after", `
+Examples:
+  $ nocodb me
+  $ nocodb me --pretty
+`)
   ).action(async (options: OutputOptions) => {
     try {
       const { client } = resolveServices(container);

@@ -17,7 +17,15 @@ import {
 } from "../../utils/command-utils.js";
 
 export function registerViewsCommands(program: Command, container: Container): void {
-  const viewsCmd = program.command("views").description("Manage views");
+  const viewsCmd = program.command("views").description("Manage views")
+    .addHelpText("after", `
+Examples:
+  $ nocodb views list tbl_xyz
+  $ nocodb views get vw_abc
+  $ nocodb views create tbl_xyz -d '{"title":"My Grid"}' --type grid
+  $ nocodb views update vw_abc -d '{"title":"Renamed"}'
+  $ nocodb views delete vw_abc
+`);
 
   // List views command
   addOutputOptions(viewsCmd.command("list").argument("tableId", "Table id")).action(

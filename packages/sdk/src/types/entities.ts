@@ -181,6 +181,74 @@ export interface Sort {
 }
 
 /**
+ * Represents a webhook/hook on a table.
+ */
+export interface Hook {
+  /** Unique identifier for the hook */
+  id: string;
+  /** ID of the table this hook belongs to */
+  fk_model_id: string;
+  /** Display title of the hook */
+  title: string;
+  /** Description of the hook */
+  description?: string;
+  /** Event type (after/before) */
+  event: 'after' | 'before';
+  /** Operation that triggers the hook */
+  operation: 'insert' | 'update' | 'delete' | 'bulkInsert' | 'bulkUpdate' | 'bulkDelete';
+  /** Whether the hook is active */
+  active?: boolean;
+  /** Notification configuration (URL, method, headers, body, etc.) */
+  notification?: Record<string, unknown>;
+  /** Retry count on failure */
+  retries?: number;
+  /** Retry interval in milliseconds */
+  retry_interval?: number;
+  /** Timeout in milliseconds */
+  timeout?: number;
+  /** Timestamp when the hook was created */
+  created_at?: string;
+  /** Timestamp when the hook was last updated */
+  updated_at?: string;
+}
+
+/**
+ * Represents an API token.
+ */
+export interface ApiToken {
+  /** Unique identifier for the token */
+  id?: string;
+  /** Token string */
+  token?: string;
+  /** Description/label for the token */
+  description?: string;
+  /** ID of the user who created the token */
+  fk_user_id?: string;
+  /** Timestamp when the token was created */
+  created_at?: string;
+  /** Timestamp when the token was last updated */
+  updated_at?: string;
+}
+
+/**
+ * Represents a user associated with a base (collaborator).
+ */
+export interface BaseUser {
+  /** Unique identifier for the user */
+  id?: string;
+  /** User email address */
+  email: string;
+  /** User display name */
+  display_name?: string;
+  /** User role in the base */
+  roles?: string;
+  /** Timestamp when the user was created */
+  created_at?: string;
+  /** Timestamp when the user was last updated */
+  updated_at?: string;
+}
+
+/**
  * Represents a row of data in a table.
  * 
  * Rows have an Id field and arbitrary additional fields based on the table schema.

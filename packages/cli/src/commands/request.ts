@@ -19,6 +19,13 @@ export function registerRequestCommand(program: Command, container: Container): 
   const requestCmd = program
     .command("request")
     .description("Make a raw API request")
+    .addHelpText("after", `
+Examples:
+  $ nocodb request GET /api/v2/meta/bases
+  $ nocodb request GET /api/v2/meta/bases/p_abc123/tables
+  $ nocodb request POST /api/v2/meta/bases -d '{"title":"New Base"}'
+  $ nocodb request GET /api/v2/meta/bases -q limit=10 --pretty
+`)
     .argument("method", "HTTP method")
     .argument("path", "API path, e.g. /api/v2/meta/projects")
     .option("-q, --query <key=value>", "Query string parameter", collect, [])

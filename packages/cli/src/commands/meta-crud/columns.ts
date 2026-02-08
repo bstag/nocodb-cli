@@ -17,7 +17,15 @@ import {
 } from "../../utils/command-utils.js";
 
 export function registerColumnsCommands(program: Command, container: Container): void {
-  const columnsCmd = program.command("columns").description("Manage table columns");
+  const columnsCmd = program.command("columns").description("Manage table columns")
+    .addHelpText("after", `
+Examples:
+  $ nocodb columns list tbl_xyz
+  $ nocodb columns get cl_abc
+  $ nocodb columns create tbl_xyz -d '{"column_name":"Status","uidt":"SingleLineText"}'
+  $ nocodb columns update cl_abc -d '{"column_name":"Renamed"}'
+  $ nocodb columns delete cl_abc
+`);
 
   addOutputOptions(columnsCmd.command("list").argument("tableId", "Table id")).action(
     async (tableId: string, options: OutputOptions) => {

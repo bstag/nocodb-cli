@@ -18,7 +18,12 @@ import { printResult, handleError, type OutputOptions } from "../utils/command-u
  * @param container - Dependency injection container
  */
 export function registerStorageCommands(program: Command, container: Container): void {
-  const storageCmd = program.command("storage").description("File storage operations");
+  const storageCmd = program.command("storage").description("File storage operations")
+    .addHelpText("after", `
+Examples:
+  $ nocodb storage upload ./photo.png
+  $ nocodb storage upload ./report.pdf --pretty
+`);
 
   // Upload file command
   addOutputOptions(storageCmd.command("upload").argument("filePath", "Path to the file to upload")).action(

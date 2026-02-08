@@ -17,7 +17,15 @@ import {
 } from "../../utils/command-utils.js";
 
 export function registerSortsCommands(program: Command, container: Container): void {
-  const sortsCmd = program.command("sorts").description("Manage view sorts");
+  const sortsCmd = program.command("sorts").description("Manage view sorts")
+    .addHelpText("after", `
+Examples:
+  $ nocodb sorts list vw_abc
+  $ nocodb sorts get srt_123
+  $ nocodb sorts create vw_abc -d '{"fk_column_id":"cl_x","direction":"asc"}'
+  $ nocodb sorts update srt_123 -d '{"direction":"desc"}'
+  $ nocodb sorts delete srt_123
+`);
 
   addOutputOptions(sortsCmd.command("list").argument("viewId", "View id")).action(
     async (viewId: string, options: OutputOptions) => {

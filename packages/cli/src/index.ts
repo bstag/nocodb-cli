@@ -26,6 +26,9 @@ import { registerSchemaCommands } from "./commands/schema.js";
 import { registerDataIoCommands } from "./commands/data-io.js";
 import { registerMetaCrudCommands } from "./commands/meta-crud.js";
 import { registerMeCommand } from "./commands/me.js";
+import { registerHooksCommands } from "./commands/hooks.js";
+import { registerTokensCommands } from "./commands/tokens.js";
+import { registerUsersCommands } from "./commands/users.js";
 import { ConfigManager } from "./config/manager.js";
 import { createContainer, type Container } from "./container.js";
 
@@ -168,13 +171,23 @@ function registerCommands(): void {
   registerMetaCommands(program, container);
   registerRequestCommand(program, container);
   registerMeCommand(program, container);
+  registerHooksCommands(program, container);
+  registerTokensCommands(program, container);
+  registerUsersCommands(program, container);
 }
 
 /**
  * Register config management commands
  */
 function registerConfigCommands(): void {
-  const configCmd = program.command("config").description("Manage CLI configuration");
+  const configCmd = program.command("config").description("Manage CLI configuration")
+    .addHelpText("after", `
+Examples:
+  $ nocodb config set baseUrl https://noco.example.com
+  $ nocodb config set baseId p_abc123
+  $ nocodb config get baseUrl
+  $ nocodb config show
+`);
 
   configCmd
     .command("set")
@@ -293,7 +306,13 @@ function registerConfigCommands(): void {
  * Register header management commands
  */
 function registerHeaderCommands(): void {
-  const headerCmd = program.command("header").description("Manage default headers");
+  const headerCmd = program.command("header").description("Manage default headers")
+    .addHelpText("after", `
+Examples:
+  $ nocodb header set xc-token my-api-token
+  $ nocodb header list
+  $ nocodb header delete xc-token
+`);
 
   headerCmd
     .command("set")
@@ -360,7 +379,16 @@ function registerHeaderCommands(): void {
  * Register settings management commands
  */
 function registerSettingsCommands(): void {
-  const settingsCmd = program.command("settings").description("Manage CLI settings (timeout, retries)");
+  const settingsCmd = program.command("settings").description("Manage CLI settings (timeout, retries)")
+    .addHelpText("after", `
+Examples:
+  $ nocodb settings show
+  $ nocodb settings set timeoutMs 30000
+  $ nocodb settings set retryCount 3
+  $ nocodb settings set retryStatusCodes '[429,500,502]'
+  $ nocodb settings reset
+  $ nocodb settings path
+`);
 
   settingsCmd
     .command("show")

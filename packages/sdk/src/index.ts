@@ -11,6 +11,9 @@ import type {
   Filter,
   Sort,
   Row,
+  Hook,
+  ApiToken,
+  BaseUser,
 } from "./types/entities.js";
 
 import type {
@@ -39,6 +42,9 @@ export type {
   ComparisonOperator,
   Sort,
   Row,
+  Hook,
+  ApiToken,
+  BaseUser,
 } from "./types/entities.js";
 
 // Export response types
@@ -1018,6 +1024,156 @@ export class MetaApi {
    */
   deleteColumn(columnId: string): Promise<void> {
     return this.client.request<void>("DELETE", `/api/v2/meta/columns/${columnId}`);
+  }
+
+  // ── Hooks (Webhooks) ──────────────────────────────────────────────
+
+  /**
+   * Lists all hooks for a table.
+   *
+   * @param tableId - ID of the table
+   * @returns Promise resolving to paginated list of hooks
+   * @throws {NotFoundError} If the table doesn't exist
+   */
+  listHooks(tableId: string): Promise<ListResponse<Hook>> {
+    return this.client.request<ListResponse<Hook>>("GET", `/api/v2/meta/tables/${tableId}/hooks`);
+  }
+
+  /**
+   * Creates a new hook (webhook) for a table.
+   *
+   * @param tableId - ID of the table
+   * @param body - Hook properties
+   * @returns Promise resolving to the created hook
+   * @throws {ValidationError} If the request data is invalid
+   */
+  createHook(tableId: string, body: Partial<Hook>): Promise<Hook> {
+    return this.client.request<Hook>("POST", `/api/v2/meta/tables/${tableId}/hooks`, { body });
+  }
+
+  /**
+   * Gets detailed information about a specific hook.
+   *
+   * @param hookId - ID of the hook to retrieve
+   * @returns Promise resolving to the hook details
+   * @throws {NotFoundError} If the hook doesn't exist
+   */
+  getHook(hookId: string): Promise<Hook> {
+    return this.client.request<Hook>("GET", `/api/v2/meta/hooks/${hookId}`);
+  }
+
+  /**
+   * Updates a hook's properties.
+   *
+   * @param hookId - ID of the hook to update
+   * @param body - Properties to update
+   * @returns Promise resolving to the updated hook
+   * @throws {NotFoundError} If the hook doesn't exist
+   */
+  updateHook(hookId: string, body: Partial<Hook>): Promise<Hook> {
+    return this.client.request<Hook>("PATCH", `/api/v2/meta/hooks/${hookId}`, { body });
+  }
+
+  /**
+   * Deletes a hook permanently.
+   *
+   * @param hookId - ID of the hook to delete
+   * @returns Promise that resolves when deletion is complete
+   * @throws {NotFoundError} If the hook doesn't exist
+   */
+  deleteHook(hookId: string): Promise<void> {
+    return this.client.request<void>("DELETE", `/api/v2/meta/hooks/${hookId}`);
+  }
+
+  /**
+   * Tests a hook by triggering a sample notification.
+   *
+   * @param hookId - ID of the hook to test
+   * @param body - Optional test payload
+   * @returns Promise resolving to the test result
+   * @throws {NotFoundError} If the hook doesn't exist
+   */
+  testHook(hookId: string, body?: Record<string, unknown>): Promise<unknown> {
+    return this.client.request<unknown>("POST", `/api/v2/meta/hooks/${hookId}/test`, body ? { body } : {});
+  }
+
+  // ── API Tokens ────────────────────────────────────────────────────
+
+  /**
+   * Lists all API tokens for the authenticated user.
+   *
+   * @returns Promise resolving to a list of API tokens
+   */
+  listTokens(): Promise<ListResponse<ApiToken>> {
+    return this.client.request<ListResponse<ApiToken>>("GET", "/api/v1/tokens");
+  }
+
+  /**
+   * Creates a new API token.
+   *
+   * @param body - Token properties (description is recommended)
+   * @returns Promise resolving to the created token (includes the token string)
+   */
+  createToken(body: Partial<ApiToken>): Promise<ApiToken> {
+    return this.client.request<ApiToken>("POST", "/api/v1/tokens", { body });
+  }
+
+  /**
+   * Deletes an API token.
+   *
+   * @param token - The token string to delete
+   * @returns Promise that resolves when deletion is complete
+   */
+  deleteToken(token: string): Promise<void> {
+    return this.client.request<void>("DELETE", `/api/v1/tokens/${encodeURIComponent(token)}`);
+  }
+
+  // ── Base Users (Collaborators) ────────────────────────────────────
+
+  /**
+   * Lists all users (collaborators) for a base.
+   *
+   * @param baseId - ID of the base
+   * @returns Promise resolving to a list of base users
+   * @throws {NotFoundError} If the base doesn't exist
+   */
+  listBaseUsers(baseId: string): Promise<ListResponse<BaseUser>> {
+    return this.client.request<ListResponse<BaseUser>>("GET", `/api/v2/meta/bases/${baseId}/users`);
+  }
+
+  /**
+   * Invites a user to a base.
+   *
+   * @param baseId - ID of the base
+   * @param body - User properties (email and roles are required)
+   * @returns Promise resolving to the invite result
+   * @throws {ValidationError} If the request data is invalid
+   */
+  inviteBaseUser(baseId: string, body: Partial<BaseUser>): Promise<unknown> {
+    return this.client.request<unknown>("POST", `/api/v2/meta/bases/${baseId}/users`, { body });
+  }
+
+  /**
+   * Updates a user's role in a base.
+   *
+   * @param baseId - ID of the base
+   * @param userId - ID of the user to update
+   * @param body - Properties to update (typically roles)
+   * @returns Promise resolving to the updated user
+   */
+  updateBaseUser(baseId: string, userId: string, body: Partial<BaseUser>): Promise<unknown> {
+    return this.client.request<unknown>("PATCH", `/api/v2/meta/bases/${baseId}/users/${userId}`, { body });
+  }
+
+  /**
+   * Removes a user from a base.
+   *
+   * @param baseId - ID of the base
+   * @param userId - ID of the user to remove
+   * @returns Promise that resolves when removal is complete
+   */
+  removeBaseUser(baseId: string, userId: string): Promise<void> {
+    return this.client.request<void>("DELETE", `/api/v2/meta/bases/${baseId}/users/${userId}`);
   }
 
   /**

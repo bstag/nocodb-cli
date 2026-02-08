@@ -7,6 +7,9 @@ import type {
   Column,
   Filter,
   Sort,
+  Hook,
+  ApiToken,
+  BaseUser,
   ListResponse,
 } from '@nocodb/sdk';
 
@@ -605,6 +608,151 @@ export class MetaService {
    */
   async deleteSort(sortId: string): Promise<void> {
     return this.client.request<void>('DELETE', `/api/v2/meta/sorts/${sortId}`);
+  }
+
+  // ============================================================================
+  // Hook (Webhook) Operations
+  // ============================================================================
+
+  /**
+   * List all hooks for a table.
+   *
+   * @param tableId - Table ID
+   * @returns Paginated list of hooks
+   */
+  async listHooks(tableId: string): Promise<ListResponse<Hook>> {
+    return this.client.request<ListResponse<Hook>>('GET', `/api/v2/meta/tables/${tableId}/hooks`);
+  }
+
+  /**
+   * Create a new hook (webhook) for a table.
+   *
+   * @param tableId - Table ID
+   * @param data - Hook data
+   * @returns Created hook
+   */
+  async createHook(tableId: string, data: Partial<Hook>): Promise<Hook> {
+    return this.client.request<Hook>('POST', `/api/v2/meta/tables/${tableId}/hooks`, { body: data });
+  }
+
+  /**
+   * Get a hook by ID.
+   *
+   * @param hookId - Hook ID
+   * @returns Hook details
+   */
+  async getHook(hookId: string): Promise<Hook> {
+    return this.client.request<Hook>('GET', `/api/v2/meta/hooks/${hookId}`);
+  }
+
+  /**
+   * Update a hook.
+   *
+   * @param hookId - Hook ID
+   * @param data - Updated hook data
+   * @returns Updated hook
+   */
+  async updateHook(hookId: string, data: Partial<Hook>): Promise<Hook> {
+    return this.client.request<Hook>('PATCH', `/api/v2/meta/hooks/${hookId}`, { body: data });
+  }
+
+  /**
+   * Delete a hook.
+   *
+   * @param hookId - Hook ID
+   */
+  async deleteHook(hookId: string): Promise<void> {
+    return this.client.request<void>('DELETE', `/api/v2/meta/hooks/${hookId}`);
+  }
+
+  /**
+   * Test a hook by triggering a sample notification.
+   *
+   * @param hookId - Hook ID
+   * @param data - Optional test payload
+   * @returns Test result
+   */
+  async testHook(hookId: string, data?: Record<string, unknown>): Promise<unknown> {
+    return this.client.request<unknown>('POST', `/api/v2/meta/hooks/${hookId}/test`, data ? { body: data } : {});
+  }
+
+  // ============================================================================
+  // API Token Operations
+  // ============================================================================
+
+  /**
+   * List all API tokens for the authenticated user.
+   *
+   * @returns List of API tokens
+   */
+  async listTokens(): Promise<ListResponse<ApiToken>> {
+    return this.client.request<ListResponse<ApiToken>>('GET', '/api/v1/tokens');
+  }
+
+  /**
+   * Create a new API token.
+   *
+   * @param data - Token data (description is recommended)
+   * @returns Created token (includes the token string)
+   */
+  async createToken(data: Partial<ApiToken>): Promise<ApiToken> {
+    return this.client.request<ApiToken>('POST', '/api/v1/tokens', { body: data });
+  }
+
+  /**
+   * Delete an API token.
+   *
+   * @param token - The token string to delete
+   */
+  async deleteToken(token: string): Promise<void> {
+    return this.client.request<void>('DELETE', `/api/v1/tokens/${encodeURIComponent(token)}`);
+  }
+
+  // ============================================================================
+  // Base User (Collaborator) Operations
+  // ============================================================================
+
+  /**
+   * List all users (collaborators) for a base.
+   *
+   * @param baseId - Base ID
+   * @returns List of base users
+   */
+  async listBaseUsers(baseId: string): Promise<ListResponse<BaseUser>> {
+    return this.client.request<ListResponse<BaseUser>>('GET', `/api/v2/meta/bases/${baseId}/users`);
+  }
+
+  /**
+   * Invite a user to a base.
+   *
+   * @param baseId - Base ID
+   * @param data - User data (email and roles are required)
+   * @returns Invite result
+   */
+  async inviteBaseUser(baseId: string, data: Partial<BaseUser>): Promise<unknown> {
+    return this.client.request<unknown>('POST', `/api/v2/meta/bases/${baseId}/users`, { body: data });
+  }
+
+  /**
+   * Update a user's role in a base.
+   *
+   * @param baseId - Base ID
+   * @param userId - User ID
+   * @param data - Updated user data (typically roles)
+   * @returns Updated user
+   */
+  async updateBaseUser(baseId: string, userId: string, data: Partial<BaseUser>): Promise<unknown> {
+    return this.client.request<unknown>('PATCH', `/api/v2/meta/bases/${baseId}/users/${userId}`, { body: data });
+  }
+
+  /**
+   * Remove a user from a base.
+   *
+   * @param baseId - Base ID
+   * @param userId - User ID
+   */
+  async removeBaseUser(baseId: string, userId: string): Promise<void> {
+    return this.client.request<void>('DELETE', `/api/v2/meta/bases/${baseId}/users/${userId}`);
   }
 
   // ============================================================================
