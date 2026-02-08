@@ -85,4 +85,19 @@ describe("MetaApi", () => {
     testEndpoint("createToken", "POST", "/api/v2/meta/bases/b1/api-tokens", () => api.createToken("b1", { description: "t" }), { description: "t" });
     testEndpoint("deleteToken", "DELETE", "/api/v2/meta/bases/b1/api-tokens/tok1", () => api.deleteToken("b1", "tok1"));
   });
+
+  describe("Cloud Workspaces", () => {
+    testEndpoint("listWorkspaces", "GET", "/api/v2/meta/workspaces", () => api.listWorkspaces());
+    testEndpoint("getWorkspace", "GET", "/api/v2/meta/workspaces/ws1", () => api.getWorkspace("ws1"));
+    testEndpoint("createWorkspace", "POST", "/api/v2/meta/workspaces", () => api.createWorkspace({ title: "w" }), { title: "w" });
+    testEndpoint("updateWorkspace", "PATCH", "/api/v2/meta/workspaces/ws1", () => api.updateWorkspace("ws1", { title: "u" }), { title: "u" });
+    testEndpoint("deleteWorkspace", "DELETE", "/api/v2/meta/workspaces/ws1", () => api.deleteWorkspace("ws1"));
+    testEndpoint("listWorkspaceUsers", "GET", "/api/v2/meta/workspaces/ws1/users", () => api.listWorkspaceUsers("ws1"));
+    testEndpoint("getWorkspaceUser", "GET", "/api/v2/meta/workspaces/ws1/users/u1", () => api.getWorkspaceUser("ws1", "u1"));
+    testEndpoint("inviteWorkspaceUser", "POST", "/api/v2/meta/workspaces/ws1/invitations", () => api.inviteWorkspaceUser("ws1", { email: "a@b.c", roles: "viewer" }), { email: "a@b.c", roles: "viewer" });
+    testEndpoint("updateWorkspaceUser", "PATCH", "/api/v2/meta/workspaces/ws1/users/u1", () => api.updateWorkspaceUser("ws1", "u1", { roles: "editor" }), { roles: "editor" });
+    testEndpoint("deleteWorkspaceUser", "DELETE", "/api/v2/meta/workspaces/ws1/users/u1", () => api.deleteWorkspaceUser("ws1", "u1"));
+    testEndpoint("listWorkspaceBases", "GET", "/api/v2/meta/workspaces/ws1/bases", () => api.listWorkspaceBases("ws1"));
+    testEndpoint("createWorkspaceBase", "POST", "/api/v2/meta/workspaces/ws1/bases", () => api.createWorkspaceBase("ws1", { title: "b" }), { title: "b" });
+  });
 });

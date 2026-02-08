@@ -186,8 +186,6 @@ CLI primarily uses API tokens (`xc-token`), not JWT auth. Most auth endpoints (s
 
 If needed: new `AuthApi` class with `signin`, `signout`, `changePassword`, `refreshToken`, `updateProfile`. CLI: `auth signin/signout/change-password`.
 
-#### Gap 14: Cloud Workspace APIs — **DEPRIORITIZED**
+#### Gap 14: Cloud Workspace APIs — **DONE** ✅
 
-All endpoints are cloud-only (☁). Self-hosted NocoDB doesn't have workspaces. Would cause naming collision with CLI's existing `workspace` command (local multi-account management).
-
-If needed: new `WorkspaceApi` class, CLI `cloud-workspace` command group. Only enable when connected to `app.nocodb.com`.
+Cloud-only (☁) workspace endpoints implemented. SDK: `listWorkspaces`, `getWorkspace`, `createWorkspace`, `updateWorkspace`, `deleteWorkspace`, `listWorkspaceUsers`, `getWorkspaceUser`, `inviteWorkspaceUser`, `updateWorkspaceUser`, `deleteWorkspaceUser`, `listWorkspaceBases`, `createWorkspaceBase`. Types: `NcWorkspace`, `NcWorkspaceUser`. CLI: `workspace cloud list/get/create/update/delete/users/user-get/invite/user-update/user-remove/bases/create-base`. Naming collision resolved by nesting under `workspace cloud` subcommand group — existing local workspace management (`workspace add/use/list/delete/show`) is unaffected.

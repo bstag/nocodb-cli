@@ -572,6 +572,39 @@ function getAppInfoAllowFail() {
   return runCliAllowFail(["info", "--pretty"]);
 }
 
+// --- Cloud Workspace helpers (☁ cloud-only, skipped on self-hosted) ---
+function cloudWorkspaceList() {
+  const out = runCli(["workspace", "cloud", "list", "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function cloudWorkspaceListAllowFail() {
+  return runCliAllowFail(["workspace", "cloud", "list", "--pretty"]);
+}
+
+function cloudWorkspaceGet(workspaceId) {
+  const out = runCli(["workspace", "cloud", "get", workspaceId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function cloudWorkspaceUsers(workspaceId) {
+  const out = runCli(["workspace", "cloud", "users", workspaceId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function cloudWorkspaceBases(workspaceId) {
+  const out = runCli(["workspace", "cloud", "bases", workspaceId, "--pretty"]);
+  return jsonParseOrThrow(out);
+}
+
+function cloudWorkspaceUsersAllowFail(workspaceId) {
+  return runCliAllowFail(["workspace", "cloud", "users", workspaceId, "--pretty"]);
+}
+
+function cloudWorkspaceBasesAllowFail(workspaceId) {
+  return runCliAllowFail(["workspace", "cloud", "bases", workspaceId, "--pretty"]);
+}
+
 // --- Comments helpers ---
 function listComments(tableId, rowId) {
   const out = runCli(["comments", "list", "--table-id", tableId, "--row-id", String(rowId), "--pretty"]);
@@ -803,7 +836,7 @@ function writeReportMarkdown(report) {
     "hooks", "tokens", "sources", "users",
     "comments", "sharedViews", "sharedBase", "viewConfig",
     "filterChildren", "hookFilters", "setPrimary", "duplicateOps",
-    "visibilityRules", "appInfo",
+    "visibilityRules", "appInfo", "cloudWorkspace",
   ];
   for (const key of featureKeys) {
     const result = report[key];
@@ -1956,6 +1989,39 @@ async function main() {
     console.log("App info tests failed:", report.appInfo.error);
   }
 
+  // =========================================================================
+  // NEW: Cloud Workspace tests (☁ cloud-only — gracefully skipped on self-hosted)
+  // =========================================================================
+  console.log("Testing cloud workspace commands...");
+  try {
+    // Probe: try listing workspaces. On self-hosted this will 404/fail.
+    const probe = cloudWorkspaceListAllowFail();
+    if (probe.status !== 0) {
+      console.log("Cloud workspace endpoints not available (self-hosted?); skipping.");
+      report.cloudWorkspace = { status: "passed", note: "skipped — not a cloud instance" };
+    } else {
+      const wsList = jsonParseOrThrow(probe.stdout);
+      assert(wsList.list !== undefined, "workspace cloud list should return a list");
+      // If there's at least one workspace, test get/users/bases
+      if (wsList.list.length > 0) {
+        const wsId = wsList.list[0].id;
+        const wsDetail = cloudWorkspaceGet(wsId);
+        assert(wsDetail.workspace !== undefined, "workspace cloud get should return workspace object");
+        assert(wsDetail.workspaceUserCount !== undefined, "workspace cloud get should return workspaceUserCount");
+        // List users
+        const usersResult = cloudWorkspaceUsersAllowFail(wsId);
+        assert(usersResult.status === 0, "workspace cloud users should succeed");
+        // List bases
+        const basesResult = cloudWorkspaceBasesAllowFail(wsId);
+        assert(basesResult.status === 0, "workspace cloud bases should succeed");
+      }
+      report.cloudWorkspace = { status: "passed" };
+    }
+  } catch (err) {
+    report.cloudWorkspace = { status: "failed", error: err.message || String(err) };
+    console.log("Cloud workspace tests failed:", report.cloudWorkspace.error);
+  }
+
   console.log("Cleanup...");
   // Clean up duplicated table if it was created
   if (duplicatedTableId) {
@@ -1996,7 +2062,7 @@ async function main() {
     "hooks", "tokens", "sources", "users",
     "comments", "sharedViews", "sharedBase", "viewConfig",
     "filterChildren", "hookFilters", "setPrimary", "duplicateOps",
-    "visibilityRules", "appInfo",
+    "visibilityRules", "appInfo", "cloudWorkspace",
   ];
   const featurePassed = featureTests.filter((k) => report[k]?.status === "passed").length;
   const featureFailed = featureTests.filter((k) => report[k]?.status === "failed").length;

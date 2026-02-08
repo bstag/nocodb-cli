@@ -39,6 +39,7 @@ import { registerSetPrimaryCommands } from "./commands/set-primary.js";
 import { registerDuplicateCommands } from "./commands/duplicate.js";
 import { registerVisibilityRulesCommands } from "./commands/visibility-rules.js";
 import { registerAppInfoCommand } from "./commands/app-info.js";
+import { registerCloudWorkspaceCommands } from "./commands/cloud-workspace.js";
 import { ConfigManager } from "./config/manager.js";
 import { createContainer, type Container } from "./container.js";
 
@@ -196,6 +197,7 @@ function registerCommands(): void {
   registerFilterChildrenCommands(program, container);
   registerHookFiltersCommands(program, container);
   registerSetPrimaryCommands(program, container);
+  registerCloudWorkspaceCommands(program, container);
 }
 
 /**

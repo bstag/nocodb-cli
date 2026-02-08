@@ -694,4 +694,160 @@ describe("MetaApi - Typed Methods", () => {
       expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/nocodb/info");
     });
   });
+
+  describe("Cloud Workspace operations", () => {
+    it("listWorkspaces returns ListResponse<NcWorkspace>", async () => {
+      const mockResponse = {
+        list: [
+          { id: "ws1", title: "My Workspace", description: "Test" },
+          { id: "ws2", title: "Other Workspace" },
+        ],
+        pageInfo: { totalRows: 2 },
+      };
+      vi.spyOn(client, "request").mockResolvedValue(mockResponse);
+
+      const result = await api.listWorkspaces();
+
+      expect(result.list).toHaveLength(2);
+      expect(result.list[0].id).toBe("ws1");
+      expect(result.list[0].title).toBe("My Workspace");
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/workspaces");
+    });
+
+    it("getWorkspace returns workspace with user count", async () => {
+      const mockResponse = {
+        workspace: { id: "ws1", title: "My Workspace", description: "Test", order: 1 },
+        workspaceUserCount: 5,
+      };
+      vi.spyOn(client, "request").mockResolvedValue(mockResponse);
+
+      const result = await api.getWorkspace("ws1");
+
+      expect(result.workspace.id).toBe("ws1");
+      expect(result.workspace.title).toBe("My Workspace");
+      expect(result.workspaceUserCount).toBe(5);
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/workspaces/ws1");
+    });
+
+    it("createWorkspace returns NcWorkspace", async () => {
+      const mockWs = { id: "ws-new", title: "New Workspace" };
+      vi.spyOn(client, "request").mockResolvedValue(mockWs);
+
+      const result = await api.createWorkspace({ title: "New Workspace" });
+
+      expect(result.id).toBe("ws-new");
+      expect(result.title).toBe("New Workspace");
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/workspaces", { body: { title: "New Workspace" } });
+    });
+
+    it("updateWorkspace returns void", async () => {
+      vi.spyOn(client, "request").mockResolvedValue(undefined);
+
+      const result = await api.updateWorkspace("ws1", { title: "Updated" });
+
+      expect(result).toBeUndefined();
+      expect(client.request).toHaveBeenCalledWith("PATCH", "/api/v2/meta/workspaces/ws1", { body: { title: "Updated" } });
+    });
+
+    it("deleteWorkspace returns void", async () => {
+      vi.spyOn(client, "request").mockResolvedValue(undefined);
+
+      const result = await api.deleteWorkspace("ws1");
+
+      expect(result).toBeUndefined();
+      expect(client.request).toHaveBeenCalledWith("DELETE", "/api/v2/meta/workspaces/ws1");
+    });
+
+    it("listWorkspaceUsers returns ListResponse<NcWorkspaceUser>", async () => {
+      const mockResponse = {
+        list: [
+          { email: "alice@test.com", roles: "owner", fk_user_id: "u1", invite_accepted: true },
+          { email: "bob@test.com", roles: "viewer", fk_user_id: "u2", invite_accepted: false },
+        ],
+        pageInfo: { totalRows: 2 },
+      };
+      vi.spyOn(client, "request").mockResolvedValue(mockResponse);
+
+      const result = await api.listWorkspaceUsers("ws1");
+
+      expect(result.list).toHaveLength(2);
+      expect(result.list[0].email).toBe("alice@test.com");
+      expect(result.list[0].roles).toBe("owner");
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/workspaces/ws1/users");
+    });
+
+    it("getWorkspaceUser returns NcWorkspaceUser", async () => {
+      const mockUser = { email: "alice@test.com", roles: "editor", fk_user_id: "u1" };
+      vi.spyOn(client, "request").mockResolvedValue(mockUser);
+
+      const result = await api.getWorkspaceUser("ws1", "u1");
+
+      expect(result.email).toBe("alice@test.com");
+      expect(result.roles).toBe("editor");
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/workspaces/ws1/users/u1");
+    });
+
+    it("inviteWorkspaceUser calls invitations endpoint", async () => {
+      vi.spyOn(client, "request").mockResolvedValue({ msg: "success" });
+
+      await api.inviteWorkspaceUser("ws1", { email: "new@test.com", roles: "viewer" });
+
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/workspaces/ws1/invitations", {
+        body: { email: "new@test.com", roles: "viewer" },
+      });
+    });
+
+    it("updateWorkspaceUser returns void", async () => {
+      vi.spyOn(client, "request").mockResolvedValue(undefined);
+
+      const result = await api.updateWorkspaceUser("ws1", "u1", { roles: "editor" });
+
+      expect(result).toBeUndefined();
+      expect(client.request).toHaveBeenCalledWith("PATCH", "/api/v2/meta/workspaces/ws1/users/u1", { body: { roles: "editor" } });
+    });
+
+    it("deleteWorkspaceUser returns void", async () => {
+      vi.spyOn(client, "request").mockResolvedValue(undefined);
+
+      const result = await api.deleteWorkspaceUser("ws1", "u1");
+
+      expect(result).toBeUndefined();
+      expect(client.request).toHaveBeenCalledWith("DELETE", "/api/v2/meta/workspaces/ws1/users/u1");
+    });
+
+    it("listWorkspaceBases returns ListResponse<Base>", async () => {
+      const mockResponse = {
+        list: [
+          { id: "b1", title: "Base 1" },
+          { id: "b2", title: "Base 2" },
+        ],
+        pageInfo: { totalRows: 2 },
+      };
+      vi.spyOn(client, "request").mockResolvedValue(mockResponse);
+
+      const result = await api.listWorkspaceBases("ws1");
+
+      expect(result.list).toHaveLength(2);
+      expect(result.list[0].id).toBe("b1");
+      expect(client.request).toHaveBeenCalledWith("GET", "/api/v2/meta/workspaces/ws1/bases");
+    });
+
+    it("createWorkspaceBase returns Base", async () => {
+      const mockBase = { id: "b-new", title: "New Base" };
+      vi.spyOn(client, "request").mockResolvedValue(mockBase);
+
+      const result = await api.createWorkspaceBase("ws1", { title: "New Base" });
+
+      expect(result.id).toBe("b-new");
+      expect(result.title).toBe("New Base");
+      expect(client.request).toHaveBeenCalledWith("POST", "/api/v2/meta/workspaces/ws1/bases", { body: { title: "New Base" } });
+    });
+
+    it("handles cloud-only error gracefully", async () => {
+      const error = new Error("HTTP 404: Not Found");
+      vi.spyOn(client, "request").mockRejectedValue(error);
+
+      await expect(api.listWorkspaces()).rejects.toThrow("HTTP 404: Not Found");
+    });
+  });
 });

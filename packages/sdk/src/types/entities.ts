@@ -498,6 +498,55 @@ export interface DuplicateOptions {
 }
 
 /**
+ * Represents a NocoDB Cloud workspace (☁ cloud-only).
+ * 
+ * Workspaces are organizational containers for bases in NocoDB Cloud.
+ * Self-hosted NocoDB does not have workspaces.
+ */
+export interface NcWorkspace {
+  /** Unique identifier for the workspace */
+  id: string;
+  /** Display title of the workspace */
+  title?: string;
+  /** Workspace description */
+  description?: string;
+  /** ID of the user who owns the workspace */
+  fk_user_id?: string;
+  /** ID of the organization */
+  fk_org_id?: string;
+  /** Display order */
+  order?: number;
+  /** Whether the workspace is deleted (soft delete) */
+  deleted?: boolean;
+  /** Whether SSO-only access is enforced */
+  sso_only_access?: boolean;
+  /** Additional metadata */
+  meta?: Record<string, unknown> | string | null;
+  /** Timestamp when the workspace was created */
+  created_at?: string;
+  /** Timestamp when the workspace was last updated */
+  updated_at?: string;
+  /** Timestamp when the workspace was deleted */
+  deleted_at?: string;
+}
+
+/**
+ * Represents a user within a NocoDB Cloud workspace (☁ cloud-only).
+ */
+export interface NcWorkspaceUser {
+  /** User email address */
+  email?: string;
+  /** ID of the user */
+  fk_user_id?: string;
+  /** Whether the user has accepted the invite */
+  invite_accepted?: boolean;
+  /** Invite token (for pending invitations) */
+  invite_token?: string;
+  /** User role in the workspace */
+  roles?: string;
+}
+
+/**
  * Represents a row of data in a table.
  * 
  * Rows have an Id field and arbitrary additional fields based on the table schema.

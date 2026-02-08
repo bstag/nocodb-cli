@@ -258,6 +258,68 @@ function startServer() {
       return;
     }
 
+    // --- Cloud Workspaces ---
+    if (url.pathname === "/api/v2/meta/workspaces" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ list: [{ id: "ws1", title: "MyWorkspace" }], pageInfo: { totalRows: 1 } }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ id: "ws-new", ...(body as object) }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ workspace: { id: "ws1", title: "MyWorkspace" }, workspaceUserCount: 3 }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1" && req.method === "PATCH") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ msg: "success" }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1" && req.method === "DELETE") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ msg: "success" }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1/users" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ list: [{ email: "alice@test.com", roles: "owner", fk_user_id: "u1" }], pageInfo: { totalRows: 1 } }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1/users/u1" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ email: "alice@test.com", roles: "owner", fk_user_id: "u1" }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1/invitations" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ msg: "success" }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1/users/u1" && req.method === "PATCH") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ msg: "success" }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1/users/u1" && req.method === "DELETE") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ msg: "success" }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1/bases" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ list: [{ id: "b1", title: "Base1" }], pageInfo: { totalRows: 1 } }));
+      return;
+    }
+    if (url.pathname === "/api/v2/meta/workspaces/ws1/bases" && req.method === "POST") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ id: "b-new", ...(body as object) }));
+      return;
+    }
+
     res.writeHead(404, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "not found" }));
   });
@@ -1145,5 +1207,196 @@ describe("--select flag e2e", () => {
       expect(output).toContain("Base1");
       expect(output).not.toContain("id");
     } finally { restore(); server.close(); }
+  });
+});
+
+describe("cloud workspace e2e", () => {
+  afterEach(() => {
+    delete process.env.NOCO_CONFIG_DIR;
+    delete process.env.NOCO_QUIET;
+    vi.restoreAllMocks();
+  });
+
+  it("workspace cloud list returns workspaces", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-list-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["workspace", "cloud", "list", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/workspaces")).toBe(true);
+      expect(logs.join("\n")).toContain("MyWorkspace");
+    } finally { restore(); server.close(); }
+  });
+
+  it("workspace cloud get returns workspace with user count", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-get-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["workspace", "cloud", "get", "ws1", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/workspaces/ws1")).toBe(true);
+      const output = logs.join("\n");
+      expect(output).toContain("MyWorkspace");
+      expect(output).toContain("workspaceUserCount");
+    } finally { restore(); server.close(); }
+  });
+
+  it("workspace cloud create posts body", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-create-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["workspace", "cloud", "create", "--data", '{"title":"NewWS"}'], configDir);
+
+      const createCall = calls.find((c) => c.method === "POST" && c.path === "/api/v2/meta/workspaces");
+      expect(createCall).toBeDefined();
+      expect(createCall?.body).toEqual({ title: "NewWS" });
+    } finally { server.close(); }
+  });
+
+  it("workspace cloud update patches body", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-update-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["workspace", "cloud", "update", "ws1", "--data", '{"title":"Renamed"}'], configDir);
+
+      const updateCall = calls.find((c) => c.method === "PATCH" && c.path === "/api/v2/meta/workspaces/ws1");
+      expect(updateCall).toBeDefined();
+      expect(updateCall?.body).toEqual({ title: "Renamed" });
+    } finally { server.close(); }
+  });
+
+  it("workspace cloud delete sends DELETE", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-delete-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["workspace", "cloud", "delete", "ws1"], configDir);
+
+      expect(calls.some((c) => c.method === "DELETE" && c.path === "/api/v2/meta/workspaces/ws1")).toBe(true);
+    } finally { server.close(); }
+  });
+
+  it("workspace cloud users lists workspace users", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-users-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["workspace", "cloud", "users", "ws1", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/workspaces/ws1/users")).toBe(true);
+      expect(logs.join("\n")).toContain("alice@test.com");
+    } finally { restore(); server.close(); }
+  });
+
+  it("workspace cloud user-get returns user", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-user-get-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["workspace", "cloud", "user-get", "ws1", "u1", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/workspaces/ws1/users/u1")).toBe(true);
+      expect(logs.join("\n")).toContain("alice@test.com");
+    } finally { restore(); server.close(); }
+  });
+
+  it("workspace cloud invite posts invitation", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-invite-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["workspace", "cloud", "invite", "ws1", "--data", '{"email":"bob@test.com","roles":"viewer"}'], configDir);
+
+      const inviteCall = calls.find((c) => c.method === "POST" && c.path === "/api/v2/meta/workspaces/ws1/invitations");
+      expect(inviteCall).toBeDefined();
+      expect(inviteCall?.body).toEqual({ email: "bob@test.com", roles: "viewer" });
+    } finally { server.close(); }
+  });
+
+  it("workspace cloud user-update patches user role", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-user-upd-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["workspace", "cloud", "user-update", "ws1", "u1", "--data", '{"roles":"editor"}'], configDir);
+
+      const updateCall = calls.find((c) => c.method === "PATCH" && c.path === "/api/v2/meta/workspaces/ws1/users/u1");
+      expect(updateCall).toBeDefined();
+      expect(updateCall?.body).toEqual({ roles: "editor" });
+    } finally { server.close(); }
+  });
+
+  it("workspace cloud user-remove sends DELETE", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-user-rm-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["workspace", "cloud", "user-remove", "ws1", "u1"], configDir);
+
+      expect(calls.some((c) => c.method === "DELETE" && c.path === "/api/v2/meta/workspaces/ws1/users/u1")).toBe(true);
+    } finally { server.close(); }
+  });
+
+  it("workspace cloud bases lists workspace bases", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    const { logs, restore } = captureLogs();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-bases-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+      process.env.NOCO_QUIET = "0";
+
+      await runCli(["workspace", "cloud", "bases", "ws1", "--pretty"], configDir);
+
+      expect(calls.some((c) => c.method === "GET" && c.path === "/api/v2/meta/workspaces/ws1/bases")).toBe(true);
+      expect(logs.join("\n")).toContain("Base1");
+    } finally { restore(); server.close(); }
+  });
+
+  it("workspace cloud create-base posts body", async () => {
+    const { server, baseUrl, calls } = await startServer();
+    try {
+      const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "nocodb-cli-ws-cloud-create-base-"));
+      process.env.NOCO_QUIET = "1";
+      await runCli(["config", "set", "baseUrl", baseUrl], configDir);
+
+      await runCli(["workspace", "cloud", "create-base", "ws1", "--data", '{"title":"NewBase"}'], configDir);
+
+      const createCall = calls.find((c) => c.method === "POST" && c.path === "/api/v2/meta/workspaces/ws1/bases");
+      expect(createCall).toBeDefined();
+      expect(createCall?.body).toEqual({ title: "NewBase" });
+    } finally { server.close(); }
   });
 });

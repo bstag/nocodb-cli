@@ -26,6 +26,8 @@ import type {
   AppInfo,
   VisibilityRule,
   DuplicateOptions,
+  NcWorkspace,
+  NcWorkspaceUser,
 } from "./types/entities.js";
 
 import type {
@@ -70,6 +72,8 @@ export type {
   AppInfo,
   VisibilityRule,
   DuplicateOptions,
+  NcWorkspace,
+  NcWorkspaceUser,
 } from "./types/entities.js";
 
 // Export response types
@@ -1646,6 +1650,137 @@ export class MetaApi {
    */
   getAppInfo(): Promise<AppInfo> {
     return this.client.request<AppInfo>("GET", "/api/v2/meta/nocodb/info");
+  }
+
+  // ── Cloud Workspaces (☁ cloud-only) ──────────────────────────────
+
+  /**
+   * Lists all workspaces (☁ cloud-only).
+   *
+   * @returns Promise resolving to paginated list of workspaces
+   * @throws {NetworkError} If the instance doesn't support workspaces (self-hosted)
+   */
+  listWorkspaces(): Promise<ListResponse<NcWorkspace>> {
+    return this.client.request<ListResponse<NcWorkspace>>("GET", "/api/v2/meta/workspaces");
+  }
+
+  /**
+   * Gets a workspace by ID (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace
+   * @returns Promise resolving to the workspace details and user count
+   * @throws {NotFoundError} If the workspace doesn't exist
+   */
+  getWorkspace(workspaceId: string): Promise<{ workspace: NcWorkspace; workspaceUserCount: number }> {
+    return this.client.request<{ workspace: NcWorkspace; workspaceUserCount: number }>("GET", `/api/v2/meta/workspaces/${workspaceId}`);
+  }
+
+  /**
+   * Creates a new workspace (☁ cloud-only).
+   *
+   * @param body - Workspace properties (title is required)
+   * @returns Promise resolving to the created workspace
+   * @throws {ValidationError} If the request data is invalid
+   */
+  createWorkspace(body: Partial<NcWorkspace>): Promise<NcWorkspace> {
+    return this.client.request<NcWorkspace>("POST", "/api/v2/meta/workspaces", { body });
+  }
+
+  /**
+   * Updates a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace to update
+   * @param body - Properties to update
+   * @returns Promise resolving when the update is complete
+   */
+  updateWorkspace(workspaceId: string, body: Partial<NcWorkspace>): Promise<void> {
+    return this.client.request<void>("PATCH", `/api/v2/meta/workspaces/${workspaceId}`, { body });
+  }
+
+  /**
+   * Deletes a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace to delete
+   * @returns Promise resolving when deletion is complete
+   */
+  deleteWorkspace(workspaceId: string): Promise<void> {
+    return this.client.request<void>("DELETE", `/api/v2/meta/workspaces/${workspaceId}`);
+  }
+
+  /**
+   * Lists users in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace
+   * @returns Promise resolving to a list of workspace users
+   */
+  listWorkspaceUsers(workspaceId: string): Promise<ListResponse<NcWorkspaceUser>> {
+    return this.client.request<ListResponse<NcWorkspaceUser>>("GET", `/api/v2/meta/workspaces/${workspaceId}/users`);
+  }
+
+  /**
+   * Gets a specific user in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace
+   * @param userId - ID of the user
+   * @returns Promise resolving to the workspace user details
+   */
+  getWorkspaceUser(workspaceId: string, userId: string): Promise<NcWorkspaceUser> {
+    return this.client.request<NcWorkspaceUser>("GET", `/api/v2/meta/workspaces/${workspaceId}/users/${userId}`);
+  }
+
+  /**
+   * Invites a user to a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace
+   * @param body - Invite properties (email and roles are required)
+   * @returns Promise resolving to the invite result
+   */
+  inviteWorkspaceUser(workspaceId: string, body: Partial<NcWorkspaceUser>): Promise<unknown> {
+    return this.client.request<unknown>("POST", `/api/v2/meta/workspaces/${workspaceId}/invitations`, { body });
+  }
+
+  /**
+   * Updates a user's role in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace
+   * @param userId - ID of the user to update
+   * @param body - Properties to update (typically roles)
+   * @returns Promise resolving when the update is complete
+   */
+  updateWorkspaceUser(workspaceId: string, userId: string, body: Partial<NcWorkspaceUser>): Promise<void> {
+    return this.client.request<void>("PATCH", `/api/v2/meta/workspaces/${workspaceId}/users/${userId}`, { body });
+  }
+
+  /**
+   * Removes a user from a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace
+   * @param userId - ID of the user to remove
+   * @returns Promise resolving when removal is complete
+   */
+  deleteWorkspaceUser(workspaceId: string, userId: string): Promise<void> {
+    return this.client.request<void>("DELETE", `/api/v2/meta/workspaces/${workspaceId}/users/${userId}`);
+  }
+
+  /**
+   * Lists bases in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace
+   * @returns Promise resolving to a paginated list of bases
+   */
+  listWorkspaceBases(workspaceId: string): Promise<ListResponse<Base>> {
+    return this.client.request<ListResponse<Base>>("GET", `/api/v2/meta/workspaces/${workspaceId}/bases`);
+  }
+
+  /**
+   * Creates a base in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - ID of the workspace
+   * @param body - Base properties (title is required)
+   * @returns Promise resolving to the created base
+   */
+  createWorkspaceBase(workspaceId: string, body: Partial<Base>): Promise<Base> {
+    return this.client.request<Base>("POST", `/api/v2/meta/workspaces/${workspaceId}/bases`, { body });
   }
 
   /**

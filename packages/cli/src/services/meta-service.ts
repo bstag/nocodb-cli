@@ -22,6 +22,8 @@ import type {
   AppInfo,
   VisibilityRule,
   DuplicateOptions,
+  NcWorkspace,
+  NcWorkspaceUser,
   ListResponse,
 } from '@nocodb/sdk';
 
@@ -1227,6 +1229,132 @@ export class MetaService {
    */
   async getAppInfo(): Promise<AppInfo> {
     return this.client.request<AppInfo>('GET', '/api/v2/meta/nocodb/info');
+  }
+
+  // ============================================================================
+  // Cloud Workspace Operations (☁ cloud-only)
+  // ============================================================================
+
+  /**
+   * List all workspaces (☁ cloud-only).
+   *
+   * @returns Paginated list of workspaces
+   */
+  async listWorkspaces(): Promise<ListResponse<NcWorkspace>> {
+    return this.client.request<ListResponse<NcWorkspace>>('GET', '/api/v2/meta/workspaces');
+  }
+
+  /**
+   * Get a workspace by ID (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @returns Workspace details and user count
+   */
+  async getWorkspace(workspaceId: string): Promise<{ workspace: NcWorkspace; workspaceUserCount: number }> {
+    return this.client.request<{ workspace: NcWorkspace; workspaceUserCount: number }>('GET', `/api/v2/meta/workspaces/${workspaceId}`);
+  }
+
+  /**
+   * Create a new workspace (☁ cloud-only).
+   *
+   * @param data - Workspace data (title is required)
+   * @returns Created workspace
+   */
+  async createWorkspace(data: Partial<NcWorkspace>): Promise<NcWorkspace> {
+    return this.client.request<NcWorkspace>('POST', '/api/v2/meta/workspaces', { body: data });
+  }
+
+  /**
+   * Update a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @param data - Properties to update
+   */
+  async updateWorkspace(workspaceId: string, data: Partial<NcWorkspace>): Promise<void> {
+    return this.client.request<void>('PATCH', `/api/v2/meta/workspaces/${workspaceId}`, { body: data });
+  }
+
+  /**
+   * Delete a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   */
+  async deleteWorkspace(workspaceId: string): Promise<void> {
+    return this.client.request<void>('DELETE', `/api/v2/meta/workspaces/${workspaceId}`);
+  }
+
+  /**
+   * List users in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @returns List of workspace users
+   */
+  async listWorkspaceUsers(workspaceId: string): Promise<ListResponse<NcWorkspaceUser>> {
+    return this.client.request<ListResponse<NcWorkspaceUser>>('GET', `/api/v2/meta/workspaces/${workspaceId}/users`);
+  }
+
+  /**
+   * Get a specific user in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @param userId - User ID
+   * @returns Workspace user details
+   */
+  async getWorkspaceUser(workspaceId: string, userId: string): Promise<NcWorkspaceUser> {
+    return this.client.request<NcWorkspaceUser>('GET', `/api/v2/meta/workspaces/${workspaceId}/users/${userId}`);
+  }
+
+  /**
+   * Invite a user to a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @param data - Invite data (email and roles are required)
+   * @returns Invite result
+   */
+  async inviteWorkspaceUser(workspaceId: string, data: Partial<NcWorkspaceUser>): Promise<unknown> {
+    return this.client.request<unknown>('POST', `/api/v2/meta/workspaces/${workspaceId}/invitations`, { body: data });
+  }
+
+  /**
+   * Update a user's role in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @param userId - User ID
+   * @param data - Properties to update (typically roles)
+   */
+  async updateWorkspaceUser(workspaceId: string, userId: string, data: Partial<NcWorkspaceUser>): Promise<void> {
+    return this.client.request<void>('PATCH', `/api/v2/meta/workspaces/${workspaceId}/users/${userId}`, { body: data });
+  }
+
+  /**
+   * Remove a user from a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @param userId - User ID
+   */
+  async deleteWorkspaceUser(workspaceId: string, userId: string): Promise<void> {
+    return this.client.request<void>('DELETE', `/api/v2/meta/workspaces/${workspaceId}/users/${userId}`);
+  }
+
+  /**
+   * List bases in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @returns Paginated list of bases
+   */
+  async listWorkspaceBases(workspaceId: string): Promise<ListResponse<Base>> {
+    return this.client.request<ListResponse<Base>>('GET', `/api/v2/meta/workspaces/${workspaceId}/bases`);
+  }
+
+  /**
+   * Create a base in a workspace (☁ cloud-only).
+   *
+   * @param workspaceId - Workspace ID
+   * @param data - Base data (title is required)
+   * @returns Created base
+   */
+  async createWorkspaceBase(workspaceId: string, data: Partial<Base>): Promise<Base> {
+    return this.client.request<Base>('POST', `/api/v2/meta/workspaces/${workspaceId}/bases`, { body: data });
   }
 
   // ============================================================================
