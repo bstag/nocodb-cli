@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { NocoClient } from '@nocodb/sdk';
+import { NocoClient } from '@stagware/nocodb-sdk';
 import { RowService } from '../src/services/row-service.js';
 import { SwaggerService } from '../src/services/swagger-service.js';
 

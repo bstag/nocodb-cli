@@ -14,7 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { ConfigManager, DEFAULT_SETTINGS } from "../src/config/manager.js";
-import { ValidationError } from "@nocodb/sdk";
+import { ValidationError } from "@stagware/nocodb-sdk";
 import type { UnifiedConfig, WorkspaceConfig } from "../src/config/types.js";
 
 describe("ConfigManager", () => {

@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import type { MetaApi } from "@nocodb/sdk";
+import type { MetaApi } from "@stagware/nocodb-sdk";
 import type { MultiConfig } from "../../aliases.js";
 
 export type PrintOptions = { pretty?: boolean; format?: string };

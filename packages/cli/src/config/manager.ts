@@ -17,7 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import Conf from "conf";
-import { ValidationError } from "@nocodb/sdk";
+import { ValidationError } from "@stagware/nocodb-sdk";
 import type { UnifiedConfig, WorkspaceConfig, GlobalSettings } from "./types.js";
 import type { Settings } from "../settings.js";
 import type { MultiConfig } from "../aliases.js";

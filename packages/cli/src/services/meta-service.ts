@@ -1,4 +1,4 @@
-import { NocoClient } from '@nocodb/sdk';
+import { NocoClient } from '@stagware/nocodb-sdk';
 import type {
   Base,
   Source,
@@ -25,7 +25,7 @@ import type {
   NcWorkspace,
   NcWorkspaceUser,
   ListResponse,
-} from '@nocodb/sdk';
+} from '@stagware/nocodb-sdk';
 
 /**
  * Service for managing NocoDB metadata operations.
@@ -1399,7 +1399,7 @@ export class MetaService {
   async uploadAttachment(filePath: string): Promise<unknown> {
     // Note: This delegates to MetaApi which handles the multipart form data
     // We need to import MetaApi for this specific operation
-    const { MetaApi } = await import('@nocodb/sdk');
+    const { MetaApi } = await import('@stagware/nocodb-sdk');
     const metaApi = new MetaApi(this.client);
     return metaApi.uploadAttachment(filePath);
   }

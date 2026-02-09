@@ -11,7 +11,7 @@
  * @module services/storage-service
  */
 
-import type { NocoClient } from "@nocodb/sdk";
+import type { NocoClient } from "@stagware/nocodb-sdk";
 import * as fs from "node:fs";
 import * as path from "node:path";
 

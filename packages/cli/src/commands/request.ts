@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { NocoClient, parseHeader } from "@nocodb/sdk";
+import { NocoClient, parseHeader } from "@stagware/nocodb-sdk";
 import { parseKeyValue } from "../lib.js";
 import { addJsonInputOptions, addOutputOptions } from "./helpers.js";
 import { printResult, handleError, type OutputOptions } from "../utils/command-utils.js";

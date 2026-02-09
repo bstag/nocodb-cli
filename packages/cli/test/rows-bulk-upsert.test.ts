@@ -2,9 +2,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { NocoClient } from "@nocodb/sdk";
+import { NocoClient } from "@stagware/nocodb-sdk";
 
-vi.mock("@nocodb/sdk", () => {
+vi.mock("@stagware/nocodb-sdk", () => {
   const request = vi.fn();
   
   class ValidationError extends Error {

@@ -13,7 +13,7 @@
  * ```
  */
 
-import { NocoClient, ValidationError } from '@nocodb/sdk';
+import { NocoClient, ValidationError } from '@stagware/nocodb-sdk';
 import { SwaggerService } from './services/swagger-service.js';
 import { RowService } from './services/row-service.js';
 import { MetaService } from './services/meta-service.js';

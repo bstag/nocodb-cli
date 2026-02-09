@@ -10,7 +10,7 @@ import { Command } from "commander";
 import type { Container } from "../container.js";
 import type { ConfigManager } from "../config/manager.js";
 import type { SchemaService } from "../services/schema-service.js";
-import type { NocoClient } from "@nocodb/sdk";
+import type { NocoClient } from "@stagware/nocodb-sdk";
 import { addOutputOptions } from "./helpers.js";
 import {
   printResult, handleError,

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ServiceContainer, Container, createContainer, createTestContainer } from '../src/container.js';
 import { ConfigManager } from '../src/config/manager.js';
-import { NocoClient } from '@nocodb/sdk';
+import { NocoClient } from '@stagware/nocodb-sdk';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';

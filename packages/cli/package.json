@@ -1,7 +1,31 @@
 {
-  "name": "@nocodb/cli",
+  "name": "@stagware/nocodb-cli",
   "version": "0.1.0",
+  "description": "Command-line interface for NocoDB — manage bases, tables, rows, views, and more from the terminal",
   "type": "module",
+  "license": "MIT",
+  "author": "Jason Henriksen",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stagware/nocodb-cli.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/stagware/nocodb-cli#readme",
+  "bugs": {
+    "url": "https://github.com/stagware/nocodb-cli/issues"
+  },
+  "keywords": [
+    "nocodb",
+    "cli",
+    "api",
+    "typescript",
+    "database",
+    "airtable",
+    "command-line"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
     "nocodb": "dist/index.js"
   },
@@ -9,17 +33,17 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm",
+    "build": "tsup",
     "dev": "tsx src/index.ts",
     "lint": "echo 'no lint yet'",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
-    "@nocodb/sdk": "file:../sdk",
+    "@stagware/nocodb-sdk": "^0.1.0",
     "ajv": "^8.12.0",
     "commander": "^12.1.0",
-    "conf": "^12.0.0",
-    "nocodb-cli": "file:../.."
+    "conf": "^12.0.0"
   },
   "devDependencies": {
     "fast-check": "^4.5.3",

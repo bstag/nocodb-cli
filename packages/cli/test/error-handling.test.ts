@@ -16,7 +16,7 @@ import {
   ValidationError,
   NotFoundError,
   ConflictError,
-} from '@nocodb/sdk';
+} from '@stagware/nocodb-sdk';
 import { formatError, getExitCode } from '../src/utils/error-handling.js';
 
 describe('Error Handling', () => {

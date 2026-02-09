@@ -14,7 +14,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { MetaApi, NocoClient } from "@nocodb/sdk";
+import { MetaApi, NocoClient } from "@stagware/nocodb-sdk";
 import type { SwaggerDoc } from "../utils/swagger.js";
 import { isSwaggerDoc } from "../utils/swagger.js";
 import type { ConfigManager } from "../config/manager.js";

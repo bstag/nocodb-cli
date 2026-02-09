@@ -4,8 +4,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { RowService } from "../src/services/row-service.js";
-import { ValidationError, NotFoundError, ConflictError } from "@nocodb/sdk";
-import type { NocoClient, Row, ListResponse } from "@nocodb/sdk";
+import { ValidationError, NotFoundError, ConflictError } from "@stagware/nocodb-sdk";
+import type { NocoClient, Row, ListResponse } from "@stagware/nocodb-sdk";
 import type { SwaggerService } from "../src/services/swagger-service.js";
 import type { SwaggerDoc } from "../src/utils/swagger.js";
 

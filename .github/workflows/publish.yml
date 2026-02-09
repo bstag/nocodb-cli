@@ -1,0 +1,48 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            packages/sdk/package-lock.json
+            packages/cli/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SDK
+        run: npm --prefix packages/sdk run build
+
+      - name: Test SDK
+        run: npm --prefix packages/sdk run test
+
+      - name: Build CLI
+        run: npm --prefix packages/cli run build
+
+      - name: Test CLI
+        run: npm --prefix packages/cli run test
+
+      - name: Publish SDK
+        run: npm --prefix packages/sdk publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish CLI
+        run: npm --prefix packages/cli publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

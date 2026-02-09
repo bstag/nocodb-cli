@@ -8,7 +8,7 @@ import { Command } from "commander";
 import type { Container } from "../container.js";
 import type { ConfigManager } from "../config/manager.js";
 import type { StorageService } from "../services/storage-service.js";
-import type { NocoClient } from "@nocodb/sdk";
+import type { NocoClient } from "@stagware/nocodb-sdk";
 import { addOutputOptions } from "./helpers.js";
 import { printResult, handleError, type OutputOptions } from "../utils/command-utils.js";
 

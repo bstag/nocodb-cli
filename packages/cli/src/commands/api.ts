@@ -8,11 +8,11 @@
  */
 
 import { Command } from "commander";
-import { parseHeader } from "@nocodb/sdk";
+import { parseHeader } from "@stagware/nocodb-sdk";
 import type { Container } from "../container.js";
 import type { ConfigManager } from "../config/manager.js";
 import type { SwaggerService } from "../services/swagger-service.js";
-import type { NocoClient } from "@nocodb/sdk";
+import type { NocoClient } from "@stagware/nocodb-sdk";
 import { parseJsonInput, parseKeyValue } from "../utils/parsing.js";
 import { addOutputOptions, addJsonInputOptions } from "./helpers.js";
 import type { SwaggerDoc, Operation } from "../utils/swagger.js";

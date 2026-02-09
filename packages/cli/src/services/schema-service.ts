@@ -7,7 +7,7 @@
  * @module services/schema-service
  */
 
-import type { NocoClient, Table, Column } from '@nocodb/sdk';
+import type { NocoClient, Table, Column } from '@stagware/nocodb-sdk';
 import { MetaService } from './meta-service.js';
 
 export interface TableSchema {

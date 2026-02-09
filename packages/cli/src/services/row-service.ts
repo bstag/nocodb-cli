@@ -24,8 +24,8 @@ import type {
   BulkCreateResponseWithErrors,
   BulkUpdateResponseWithErrors,
   BulkDeleteResponseWithErrors
-} from "@nocodb/sdk";
-import { ValidationError, NotFoundError, ConflictError, NocoDBError } from "@nocodb/sdk";
+} from "@stagware/nocodb-sdk";
+import { ValidationError, NotFoundError, ConflictError, NocoDBError } from "@stagware/nocodb-sdk";
 import type { SwaggerService } from "./swagger-service.js";
 import { findOperation, validateRequestBody } from "../utils/swagger.js";
 

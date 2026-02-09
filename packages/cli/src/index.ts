@@ -1,9 +1,8 @@
-#!/usr/bin/env node
 import { Command } from "commander";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { MetaApi, NocoClient } from "@nocodb/sdk";
+import { MetaApi, NocoClient } from "@stagware/nocodb-sdk";
 import {
   getBaseIdFromArgv as parseBaseIdArgv,
   handleError,

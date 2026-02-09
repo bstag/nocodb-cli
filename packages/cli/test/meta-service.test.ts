@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MetaService } from '../src/services/meta-service.js';
-import { NocoClient } from '@nocodb/sdk';
+import { NocoClient } from '@stagware/nocodb-sdk';
 import type {
   Base,
   Table,
@@ -9,7 +9,7 @@ import type {
   Filter,
   Sort,
   ListResponse,
-} from '@nocodb/sdk';
+} from '@stagware/nocodb-sdk';
 
 describe('MetaService', () => {
   let metaService: MetaService;

@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { StorageService } from "../src/services/storage-service.js";
-import type { NocoClient } from "@nocodb/sdk";
+import type { NocoClient } from "@stagware/nocodb-sdk";
 import * as fs from "node:fs";
 import * as path from "node:path";
 

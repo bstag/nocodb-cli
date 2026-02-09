@@ -5,7 +5,7 @@ import {
   ValidationError,
   NotFoundError,
   ConflictError,
-} from '@nocodb/sdk';
+} from '@stagware/nocodb-sdk';
 
 /**
  * Formats an error for consistent terminal output.

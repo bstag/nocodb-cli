@@ -11,7 +11,7 @@
  * @module services/link-service
  */
 
-import type { NocoClient, Row, ListResponse } from "@nocodb/sdk";
+import type { NocoClient, Row, ListResponse } from "@stagware/nocodb-sdk";
 
 /**
  * Service for managing linked record operations.

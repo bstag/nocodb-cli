@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LinkService } from "../src/services/link-service.js";
-import type { NocoClient, ListResponse, Row } from "@nocodb/sdk";
+import type { NocoClient, ListResponse, Row } from "@stagware/nocodb-sdk";
 
 describe("LinkService", () => {
   let mockClient: NocoClient;

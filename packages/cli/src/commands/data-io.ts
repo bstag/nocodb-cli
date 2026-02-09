@@ -13,7 +13,7 @@ import { Command } from "commander";
 import type { Container } from "../container.js";
 import type { ConfigManager } from "../config/manager.js";
 import type { RowService } from "../services/row-service.js";
-import type { NocoClient, Row, ListResponse } from "@nocodb/sdk";
+import type { NocoClient, Row, ListResponse } from "@stagware/nocodb-sdk";
 import { handleError, collect, parseQuery } from "../utils/command-utils.js";
 import { formatCsv, formatJson } from "../utils/formatting.js";
 import { parseCsv, getBaseIdFromArgv } from "../utils/parsing.js";

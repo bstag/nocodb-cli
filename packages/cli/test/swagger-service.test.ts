@@ -8,7 +8,7 @@ import path from "node:path";
 import os from "node:os";
 import { SwaggerService } from "../src/services/swagger-service.js";
 import { ConfigManager } from "../src/config/manager.js";
-import { NocoClient, MetaApi } from "@nocodb/sdk";
+import { NocoClient, MetaApi } from "@stagware/nocodb-sdk";
 
 describe("SwaggerService", () => {
   let tempDir: string;
