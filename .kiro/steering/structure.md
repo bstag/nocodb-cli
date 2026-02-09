@@ -2,93 +2,137 @@
 
 ## Monorepo Layout
 
-This is an npm workspace monorepo with two packages:
-
 ```
 nocodb-cli/
 ├── packages/
-│   ├── sdk/          # TypeScript SDK for NocoDB API
+│   ├── sdk/          # TypeScript SDK for NocoDB v2 API
 │   └── cli/          # Command-line interface
-├── scripts/          # E2E and utility scripts
-└── .kiro/            # Kiro configuration and steering
+├── openapi/          # OpenAPI specifications (v2 and v3)
+├── scripts/          # Build and e2e test scripts
+└── .kiro/            # Kiro configuration and specs
 ```
 
-## Package: SDK (`packages/sdk`)
-
-The SDK provides the core HTTP client and API abstractions.
+## SDK Package (`packages/sdk/`)
 
 ```
 packages/sdk/
 ├── src/
-│   └── index.ts      # NocoClient class, interfaces, retry logic
-├── test/             # Unit tests (*.test.ts)
-├── dist/             # Build output (generated)
+│   ├── index.ts           # Main exports, NocoClient, MetaApi, DataApi
+│   ├── errors.ts          # Typed error classes
+│   └── types/
+│       ├── entities.ts    # Entity type definitions
+│       └── responses.ts   # API response types
+├── test/                  # Unit tests
+├── dist/                  # Build output (gitignored)
 └── package.json
 ```
 
-**Key exports**:
-- `NocoClient`: Main client class with retry and timeout support
-- `ClientOptions`, `RequestOptions`, `RetryOptions`: Configuration interfaces
+**Key Classes**:
+- `NocoClient`: Low-level HTTP client with retry logic and error mapping
+- `MetaApi`: Metadata operations (bases, tables, views, columns, filters, sorts)
+- `DataApi`: Data operations (CRUD on rows)
 
-## Package: CLI (`packages/cli`)
-
-The CLI wraps the SDK and provides command-line access.
+## CLI Package (`packages/cli/`)
 
 ```
 packages/cli/
 ├── src/
-│   ├── index.ts              # CLI entry point, program setup
-│   ├── config.ts             # Legacy config management
-│   ├── settings.ts           # Timeout/retry settings
-│   ├── aliases.ts            # Alias resolution (workspace-namespaced)
-│   ├── lib.ts                # Shared utilities
-│   └── commands/
-│       ├── api.ts            # Dynamic API command registration
-│       ├── helpers.ts        # Command builder utilities
-│       ├── links.ts          # Link operations
-│       ├── meta.ts           # Meta operations (swagger, cache)
-│       ├── request.ts        # Raw HTTP requests
-│       ├── rows.ts           # Row CRUD and bulk operations
-│       ├── storage.ts        # File upload
-│       ├── workspace-alias.ts # Workspace and alias management
-│       └── meta-crud/        # CRUD commands for meta entities
-│           ├── bases.ts
-│           ├── tables.ts
-│           ├── views.ts
-│           ├── columns.ts
-│           ├── filters.ts
-│           ├── sorts.ts
-│           └── types.ts      # Shared types for meta commands
-├── test/                     # Unit tests (*.test.ts)
-├── dist/                     # Build output (generated)
+│   ├── index.ts           # CLI bootstrap and command registration
+│   ├── lib.ts             # Shared utilities and helpers
+│   ├── config.ts          # Legacy config management
+│   ├── settings.ts        # Settings (timeout, retry)
+│   ├── aliases.ts         # Workspace and alias management
+│   ├── container.ts       # Dependency injection container
+│   ├── commands/          # Command implementations
+│   │   ├── api.ts         # Dynamic API commands
+│   │   ├── rows.ts        # Row CRUD operations
+│   │   ├── links.ts       # Link management
+│   │   ├── meta.ts        # Metadata operations
+│   │   ├── data-io.ts     # Import/export
+│   │   ├── schema.ts      # Schema introspection
+│   │   ├── workspace-alias.ts  # Workspace management
+│   │   ├── cloud-workspace.ts  # Cloud workspace APIs
+│   │   ├── meta-crud/     # Metadata CRUD subcommands
+│   │   │   ├── bases.ts
+│   │   │   ├── tables.ts
+│   │   │   ├── views.ts
+│   │   │   ├── columns.ts
+│   │   │   ├── filters.ts
+│   │   │   └── sorts.ts
+│   │   └── ...            # Other command modules
+│   ├── config/
+│   │   ├── manager.ts     # ConfigManager class
+│   │   └── types.ts       # Config type definitions
+│   ├── services/          # Business logic services
+│   │   ├── meta-service.ts
+│   │   ├── row-service.ts
+│   │   ├── link-service.ts
+│   │   ├── schema-service.ts
+│   │   ├── storage-service.ts
+│   │   └── swagger-service.ts
+│   └── utils/             # Utility functions
+│       ├── command-utils.ts
+│       ├── error-handling.ts
+│       ├── formatting.ts
+│       ├── parsing.ts
+│       └── swagger.ts
+├── test/                  # Unit and integration tests
+├── dist/                  # Build output (gitignored)
 └── package.json
 ```
 
-## Command Organization
+## Architecture Patterns
 
-Commands are organized by domain:
-- **Meta CRUD**: `commands/meta-crud/*.ts` - bases, tables, views, columns, filters, sorts
-- **Data operations**: `commands/rows.ts` - row CRUD and bulk operations
-- **Dynamic API**: `commands/api.ts` - swagger-driven endpoint discovery
-- **Configuration**: `config.ts`, `settings.ts`, `aliases.ts`
-- **Utilities**: `commands/storage.ts`, `commands/request.ts`, `commands/links.ts`
+### Command Structure
+- Commands are registered in `index.ts` via `register*Commands()` functions
+- Each command module exports a registration function that attaches commands to the program
+- Commands use the dependency injection container to access services
+
+### Service Layer
+- Services encapsulate business logic and API interactions
+- Services are instantiated via the container with their dependencies
+- Services use `NocoClient` and API classes from the SDK
+
+### Configuration Management
+- `ConfigManager`: Unified workspace and configuration management
+- Workspaces store baseUrl, headers, baseId, and aliases
+- Settings stored separately for timeout/retry configuration
+- Environment variables override workspace config
+
+### Dependency Injection
+- `Container` class provides service instances
+- Services registered with factory functions
+- Lazy initialization of services
+
+### Error Handling
+- SDK throws typed errors (AuthenticationError, NotFoundError, etc.)
+- CLI catches errors and formats them for terminal output
+- `--verbose` flag shows stack traces
+
+## Testing Conventions
+
+- Tests co-located in `test/` directories within each package
+- Unit tests mock external dependencies (HTTP, filesystem)
+- Integration tests use temporary directories for config
+- Property-based tests use fast-check for generative testing
+- Test files mirror source structure: `src/foo.ts` → `test/foo.test.ts`
+
+## Import Conventions
+
+- All imports use `.js` extension (ESM requirement)
+- Relative imports for local modules
+- Absolute imports from `@stagware/nocodb-sdk` for SDK usage in CLI
+- No default exports; use named exports
 
 ## Configuration Files
 
-- **User config**: `~/.nocodb-cli/` (or `$NOCODB_SETTINGS_DIR`)
-  - `config.json`: Legacy global config (baseUrl, baseId, headers)
-  - `settings.json`: Timeout and retry settings
-  - Workspace aliases stored per workspace
-- **Swagger cache**: Stored in config directory for faster reuse
+- `~/.nocodb-cli/config.json`: Legacy config (deprecated)
+- `~/.nocodb-cli/workspaces.json`: Workspace configurations
+- `~/.nocodb-cli/settings.json`: Timeout and retry settings
+- `~/.nocodb-cli/cache/`: Cached swagger specs per base
 
-## Test Organization
+## OpenAPI Specifications
 
-- Tests mirror source structure: `test/*.test.ts` corresponds to `src/*.ts`
-- Both packages use vitest
-- E2E script: `scripts/e2e-cli.mjs` (comprehensive integration test)
-
-## Build Artifacts
-
-- `dist/` directories are generated by tsup (gitignored)
-- SDK produces ESM + type declarations
-- CLI produces executable with shebang for `nocodb` command
+- `openapi/v2/`: NocoDB v2 API specs (data and meta)
+- `openapi/v3/`: NocoDB v3 API specs (future)
+- Used for reference and dynamic command generation

@@ -1,22 +1,30 @@
 # Product Overview
 
-nocodb-cli is a Node.js SDK and CLI tool for interacting with NocoDB v2 APIs. It provides programmatic access to NocoDB instances through both a TypeScript SDK and a command-line interface.
+nocodb-cli is a Node.js TypeScript SDK and command-line interface for NocoDB v2 APIs. It provides programmatic and terminal-based access to NocoDB instances for managing bases, tables, views, rows, and metadata.
 
-## Core Features
+## Core Capabilities
 
-- **Multi-workspace support**: Manage multiple NocoDB instances with distinct URLs, tokens, and base IDs
-- **Alias system**: Use friendly names instead of UUIDs, namespaced by workspace
-- **Full CRUD operations**: Complete coverage of bases, tables, views, columns, filters, sorts, and rows
-- **Bulk operations**: Efficient batch create, update, upsert, and delete for rows
-- **Dynamic API discovery**: Swagger-based endpoint discovery and invocation
-- **Storage operations**: File upload support
-- **Configurable retry logic**: Timeout and retry behavior with customizable settings
+- **SDK**: Fully typed TypeScript client for NocoDB v2 REST APIs with generic types for all metadata operations
+- **CLI**: Comprehensive command-line tool for all NocoDB operations without writing code
+- **Multi-workspace**: Manage multiple NocoDB instances or bases with distinct URLs, tokens, and configurations
+- **Data I/O**: Import/export data in JSON and CSV formats with schema validation and bulk operations
+- **Metadata Management**: Full CRUD operations on bases, tables, views, columns, filters, sorts, and more
+- **Cloud Integration**: Specialized commands for NocoDB Cloud workspace management
 
 ## Target Users
 
-Developers and automation engineers who need to:
-- Automate NocoDB workflows
-- Integrate NocoDB with other systems
-- Manage multiple NocoDB instances
+Developers, DevOps engineers, and data administrators who need to:
+- Automate NocoDB operations in CI/CD pipelines
 - Perform bulk data operations
-- Script database operations
+- Manage multiple NocoDB environments
+- Script database schema changes
+- Integrate NocoDB with other tools
+
+## Key Features
+
+- Workspace-based configuration with alias support for friendly names
+- Environment variable support for ephemeral/CI environments
+- Configurable timeout and retry behavior with exponential backoff
+- Multiple output formats (JSON, CSV, table) with field selection
+- Swagger-based dynamic API command generation
+- Comprehensive error handling with typed exceptions

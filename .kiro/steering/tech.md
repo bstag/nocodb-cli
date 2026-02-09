@@ -1,68 +1,89 @@
 # Technology Stack
 
-## Language & Runtime
+## Build System & Package Management
 
-- **TypeScript 5.6+**: Strict mode enabled
-- **Node.js**: ES2022 target, ESNext modules
-- **Module System**: ESM (ES Modules) only
+- **Package Manager**: npm (v11+)
+- **Monorepo**: npm workspaces with two packages (sdk, cli)
+- **Build Tool**: tsup for bundling TypeScript to ESM
+- **Module System**: ESM (type: "module" in package.json)
+- **Node Version**: >=18
 
-## Build System
+## Core Technologies
 
-- **tsup**: Fast TypeScript bundler for both packages
-- **npm workspaces**: Monorepo with two packages (`@nocodb/sdk` and `@nocodb/cli`)
-- **Package Manager**: npm 10
-
-## Key Dependencies
-
-### SDK (`packages/sdk`)
-- `ofetch`: HTTP client for API requests
-
-### CLI (`packages/cli`)
-- `commander`: CLI framework for command parsing
-- `conf`: Configuration management
-- `ajv`: JSON schema validation
-- `@nocodb/sdk`: Internal SDK dependency
+- **Language**: TypeScript 5.9+ with strict mode enabled
+- **Runtime**: Node.js (ES2022 target)
+- **HTTP Client**: ofetch for SDK requests
+- **CLI Framework**: commander v14 for command parsing
+- **Configuration**: conf v15 for persistent CLI settings
+- **Schema Validation**: ajv v8 for JSON schema validation
 
 ## Testing
 
-- **vitest**: Test runner for both packages
-- Test files located in `test/` directories with `.test.ts` suffix
-
-## Common Commands
-
-### Build
-```sh
-npm run build          # Build both SDK and CLI
-npm run build --prefix packages/sdk   # Build SDK only
-npm run build --prefix packages/cli   # Build CLI only
-```
-
-### Development
-```sh
-npm run dev            # Run CLI in development mode with tsx
-```
-
-### Testing
-```sh
-npm test               # Run all tests
-npm --prefix packages/sdk run test    # SDK tests only
-npm --prefix packages/cli run test    # CLI tests only
-```
-
-### E2E Testing
-```sh
-npm run e2e            # Run end-to-end CLI test script
-```
+- **Framework**: vitest v4
+- **Property-Based Testing**: fast-check v4 for generative testing
+- **Test Location**: Co-located in `test/` directories within each package
+- **Test Naming**: `*.test.ts` suffix
 
 ## TypeScript Configuration
 
-- **Base config**: `tsconfig.base.json` with strict mode
-- **Module Resolution**: Bundler mode
-- **Output**: Declaration files (`.d.ts`) and source maps generated
-- Each package extends base config with specific `outDir` and `rootDir`
+- **Target**: ES2022
+- **Module**: ESNext with Bundler resolution
+- **Strict Mode**: Enabled with all strict checks
+- **Declaration**: Generated with source maps
+- **Shared Config**: `tsconfig.base.json` extended by packages
 
-## Build Output
+## Common Commands
 
-- SDK: `packages/sdk/dist/` (includes `.d.ts` types)
-- CLI: `packages/cli/dist/` (executable with shebang)
-- CLI binary: `nocodb` command
+### Development
+```bash
+npm install              # Install all dependencies
+npm run build           # Build both packages (sdk first, then cli)
+npm run dev             # Run CLI in development mode with tsx
+npm test                # Run all tests in both packages
+npm run lint            # Run linters (placeholder currently)
+```
+
+### Package-Specific
+```bash
+# SDK
+npm --prefix packages/sdk run build
+npm --prefix packages/sdk run test
+
+# CLI
+npm --prefix packages/cli run build
+npm --prefix packages/cli run test
+npm --prefix packages/cli run dev
+```
+
+### Testing
+```bash
+npm test                # Run all tests
+npm run e2e             # Run end-to-end CLI tests
+```
+
+### Publishing
+```bash
+npm run prepublishOnly  # Runs build + test before publishing
+```
+
+## Build Outputs
+
+- **SDK**: `packages/sdk/dist/` - ESM bundle with type declarations
+- **CLI**: `packages/cli/dist/` - Bundled executable with shebang
+- **CLI Binary**: `nocodb` command (defined in package.json bin field)
+
+## File Extensions
+
+- Source files use `.ts` extension
+- Imports must include `.js` extension (ESM requirement)
+- Test files use `.test.ts` suffix
+
+## Environment Variables
+
+- `NOCO_BASE_URL`: NocoDB instance URL
+- `NOCO_TOKEN`: API authentication token
+- `NOCO_BASE_ID`: Default base ID
+- `NOCO_CONFIG_DIR`: Override config directory location
+- `NOCODB_SETTINGS_DIR`: Override settings directory location
+- `NOCO_QUIET`: Suppress output (set to "1")
+- `NOCO_KEEP`: Keep test data in e2e tests (set to "1")
