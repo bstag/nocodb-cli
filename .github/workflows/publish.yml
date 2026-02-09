@@ -22,24 +22,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build SDK
-        run: npm --prefix packages/sdk run build
-
-      - name: Test SDK
-        run: npm --prefix packages/sdk run test
-
-      - name: Build CLI
-        run: npm --prefix packages/cli run build
-
-      - name: Test CLI
-        run: npm --prefix packages/cli run test
+      - name: Build & test
+        run: npm run build && npm test
 
       - name: Publish SDK
-        run: npm --prefix packages/sdk publish
+        run: cd packages/sdk && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish CLI
-        run: npm --prefix packages/cli publish
+        run: cd packages/cli && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
