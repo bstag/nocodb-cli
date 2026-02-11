@@ -50,6 +50,12 @@ export interface WorkspaceConfig {
   baseId?: string;
 
   /**
+   * Workspace ID for this workspace.
+   * Required for some v3 API operations (e.g. listing bases).
+   */
+  workspaceId?: string;
+
+  /**
    * Entity aliases for this workspace.
    * Maps friendly names to UUIDs for bases, tables, views, columns, etc.
    * 

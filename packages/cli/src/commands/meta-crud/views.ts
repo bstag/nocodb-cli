@@ -7,6 +7,7 @@
 import { Command } from "commander";
 import type { Container } from "../../container.js";
 import type { MetaService } from "../../services/meta-service.js";
+import type { ConfigManager } from "../../config/manager.js";
 import type { ViewType } from "@stagware/nocodb-sdk";
 import { parseJsonInput } from "../../utils/parsing.js";
 import { addOutputOptions, addJsonInputOptions } from "../helpers.js";
@@ -62,32 +63,59 @@ Examples:
   // Create view command — dispatches to v2 type-specific endpoints
   addOutputOptions(addJsonInputOptions(
     viewsCmd.command("create").argument("tableId", "Table id")
-      .option("--type <type>", "View type: grid, form, gallery, kanban (default: grid)")
+      .option("--type <type>", "View type: grid, form, gallery, kanban, calendar (default: grid)")
+      .option("--base-id <baseId>", "Base ID (required for v3)")
+      .option("--api-version <version>", "API Version (v2 or v3)", "v2")
   )).action(
-    async (tableId: string, options: JsonInputOptions & OutputOptions & { type?: string }) => {
+    async (tableId: string, options: JsonInputOptions & OutputOptions & { type?: string; baseId?: string; apiVersion: string }) => {
       try {
         const { client } = resolveServices(container);
         const metaService = container.get<Function>("metaService")(client) as MetaService;
+        const configManager = container.get<ConfigManager>("configManager");
 
         const body = await parseJsonInput(options.data, options.dataFile);
-        const viewType = (options.type || 'grid') as ViewType;
+        const viewType = (options.type || 'grid') as any;
+        const isV3 = options.apiVersion === 'v3' || viewType === 'calendar';
 
         let result;
-        switch (viewType) {
-          case 'form':
-            result = await metaService.createFormView(tableId, body as any);
-            break;
-          case 'gallery':
-            result = await metaService.createGalleryView(tableId, body as any);
-            break;
-          case 'kanban':
-            result = await metaService.createKanbanView(tableId, body as any);
-            break;
-          case 'grid':
-            result = await metaService.createGridView(tableId, body as any);
-            break;
-          default:
-            throw new Error(`Unsupported view type '${viewType}'. Use: grid, form, gallery, kanban`);
+
+        if (isV3) {
+          // Resolve Base ID: Flag > Config > Env (Env is already in Config)
+          const effectiveConfig = configManager.getEffectiveConfig();
+          const baseId = options.baseId || effectiveConfig.workspace?.baseId;
+
+          if (!baseId) {
+            throw new Error("Base ID is required for v3 view creation. Provide it via --base-id, config, or environment variable.");
+          }
+
+          // v3 Unified Creation
+          result = await metaService.createViewV3(baseId, tableId, {
+            ...body as any,
+            type: viewType,
+            title: (body as any).title || `${viewType} view`
+          });
+
+        } else {
+          // v2 Legacy Creation
+          switch (viewType) {
+            case 'form':
+              result = await metaService.createFormView(tableId, body as any);
+              break;
+            case 'gallery':
+              result = await metaService.createGalleryView(tableId, body as any);
+              break;
+            case 'kanban':
+              result = await metaService.createKanbanView(tableId, body as any);
+              break;
+            case 'grid':
+              result = await metaService.createGridView(tableId, body as any);
+              break;
+            case 'calendar':
+              throw new Error("Calendar views are only supported in v3. Use --api-version v3 or just usage of calendar implies v3 logic?");
+            // Unreachable due to isV3 check, but kept for sanity if logic changes
+            default:
+              throw new Error(`Unsupported view type '${viewType}'. Use: grid, form, gallery, kanban, calendar`);
+          }
         }
         printResult(result, options);
       } catch (err) {

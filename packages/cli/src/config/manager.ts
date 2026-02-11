@@ -119,7 +119,7 @@ export class ConfigManager {
       try {
         const raw = fs.readFileSync(this.configPath, "utf8");
         const parsed = JSON.parse(raw) as UnifiedConfig;
-        
+
         // Validate version
         if (parsed.version === 2) {
           // Ensure all workspaces have required properties
@@ -209,7 +209,7 @@ export class ConfigManager {
 
     // Save migrated config
     this.save(unified);
-    
+
     return unified;
   }
 
@@ -224,11 +224,11 @@ export class ConfigManager {
   private loadLegacyConfig(): ConfigData {
     try {
       // Conf stores data in a specific location
-      const conf = new Conf<ConfigData>({ 
-        projectName: "nocodb", 
-        cwd: this.configDir 
+      const conf = new Conf<ConfigData>({
+        projectName: "nocodb",
+        cwd: this.configDir
       });
-      
+
       return {
         baseUrl: conf.get("baseUrl"),
         baseId: conf.get("baseId"),
@@ -252,7 +252,7 @@ export class ConfigManager {
       const settingsPath = path.join(this.configDir, "settings.json");
       const raw = fs.readFileSync(settingsPath, "utf8");
       const parsed = JSON.parse(raw) as Settings;
-      
+
       if (parsed && typeof parsed === "object") {
         return {
           timeoutMs: parsed.timeoutMs ?? DEFAULT_SETTINGS.timeoutMs,
@@ -264,7 +264,7 @@ export class ConfigManager {
     } catch {
       // File missing or corrupt — use defaults
     }
-    
+
     return { ...DEFAULT_SETTINGS };
   }
 
@@ -281,7 +281,7 @@ export class ConfigManager {
       const aliasesPath = path.join(this.configDir, "config.v2.json");
       const raw = fs.readFileSync(aliasesPath, "utf8");
       const parsed = JSON.parse(raw) as MultiConfig;
-      
+
       if (parsed && typeof parsed === "object") {
         // Normalize entries to ensure required objects exist
         for (const name of Object.keys(parsed)) {
@@ -293,7 +293,7 @@ export class ConfigManager {
     } catch {
       // File missing or corrupt — use empty
     }
-    
+
     return {};
   }
 
@@ -333,7 +333,7 @@ export class ConfigManager {
   addWorkspace(name: string, config: WorkspaceConfig): void {
     // Validate workspace config
     this.validateWorkspaceConfig(config);
-    
+
     this.config.workspaces[name] = config;
     this.save();
   }
@@ -350,14 +350,14 @@ export class ConfigManager {
     if (!this.config.workspaces[name]) {
       return false;
     }
-    
+
     delete this.config.workspaces[name];
-    
+
     // Clear active workspace if it was the one removed
     if (this.config.activeWorkspace === name) {
       this.config.activeWorkspace = undefined;
     }
-    
+
     this.save();
     return true;
   }
@@ -449,7 +449,7 @@ export class ConfigManager {
     if (!ws) {
       throw new ValidationError(`Workspace '${workspaceName}' does not exist`);
     }
-    
+
     ws.aliases[alias] = id;
     this.save();
   }
@@ -467,11 +467,11 @@ export class ConfigManager {
     if (!ws) {
       throw new ValidationError(`Workspace '${workspaceName}' does not exist`);
     }
-    
+
     if (!ws.aliases[alias]) {
       return false;
     }
-    
+
     delete ws.aliases[alias];
     this.save();
     return true;
@@ -505,17 +505,17 @@ export class ConfigManager {
     settings: GlobalSettings;
   } {
     const workspace = this.getActiveWorkspace();
-    
+
     // Apply env var overrides (higher priority than workspace, lower than CLI flags)
     const effectiveWorkspace = this.applyEnvVarOverrides(workspace);
-    
+
     // Apply precedence: CLI flags > global settings > defaults
     const settings: GlobalSettings = {
       ...DEFAULT_SETTINGS,
       ...this.config.settings,
       ...cliFlags,
     };
-    
+
     return { workspace: effectiveWorkspace, settings };
   }
 
@@ -537,9 +537,10 @@ export class ConfigManager {
     const envBaseUrl = process.env.NOCO_BASE_URL;
     const envToken = process.env.NOCO_TOKEN;
     const envBaseId = process.env.NOCO_BASE_ID;
+    const envWorkspaceId = process.env.NOCO_WORKSPACE_ID;
 
     // No env vars set — return workspace as-is
-    if (!envBaseUrl && !envToken && !envBaseId) {
+    if (!envBaseUrl && !envToken && !envBaseId && !envWorkspaceId) {
       return workspace;
     }
 
@@ -552,6 +553,7 @@ export class ConfigManager {
         baseUrl: envBaseUrl,
         headers: envToken ? { "xc-token": envToken } : {},
         baseId: envBaseId,
+        workspaceId: envWorkspaceId,
         aliases: {},
       };
     }
@@ -564,6 +566,7 @@ export class ConfigManager {
         ? { ...workspace.headers, "xc-token": envToken }
         : workspace.headers,
       baseId: envBaseId ?? workspace.baseId,
+      workspaceId: envWorkspaceId ?? workspace.workspaceId,
     };
   }
 
@@ -580,10 +583,10 @@ export class ConfigManager {
       ...this.config.settings,
       ...settings,
     };
-    
+
     // Validate settings
     this.validateGlobalSettings(newSettings);
-    
+
     this.config.settings = newSettings;
     this.save();
   }
@@ -608,7 +611,7 @@ export class ConfigManager {
     if (!config.baseUrl) {
       throw new ValidationError("Workspace baseUrl is required");
     }
-    
+
     try {
       const url = new URL(config.baseUrl);
       if (!url.protocol.startsWith("http")) {
@@ -620,12 +623,12 @@ export class ConfigManager {
       if (err instanceof ValidationError) throw err;
       throw new ValidationError(`Invalid baseUrl format: ${config.baseUrl}`);
     }
-    
+
     // Validate headers structure
     if (config.headers && typeof config.headers !== "object") {
       throw new ValidationError("Workspace headers must be an object");
     }
-    
+
     // Validate aliases structure
     if (config.aliases && typeof config.aliases !== "object") {
       throw new ValidationError("Workspace aliases must be an object");
@@ -645,26 +648,26 @@ export class ConfigManager {
         `Invalid timeoutMs: ${settings.timeoutMs}. Must be positive.`
       );
     }
-    
+
     // Validate retryCount
     if (settings.retryCount < 0) {
       throw new ValidationError(
         `Invalid retryCount: ${settings.retryCount}. Must be non-negative.`
       );
     }
-    
+
     // Validate retryDelay
     if (settings.retryDelay < 0) {
       throw new ValidationError(
         `Invalid retryDelay: ${settings.retryDelay}. Must be non-negative.`
       );
     }
-    
+
     // Validate retryStatusCodes
     if (!Array.isArray(settings.retryStatusCodes)) {
       throw new ValidationError("retryStatusCodes must be an array");
     }
-    
+
     for (const code of settings.retryStatusCodes) {
       if (!Number.isInteger(code) || code < 100 || code > 599) {
         throw new ValidationError(
@@ -685,25 +688,25 @@ export class ConfigManager {
   private save(config = this.config): void {
     // Ensure config directory exists
     fs.mkdirSync(this.configDir, { recursive: true });
-    
+
     // Write to temporary file first for atomic update
     const tempPath = `${this.configPath}.tmp`;
     const backupPath = `${this.configPath}.bak`;
     const content = JSON.stringify(config, null, 2);
-    
+
     // Write and flush to disk
     fs.writeFileSync(tempPath, content, { encoding: "utf8", flag: "w" });
-    
+
     // Verify temp file was created and has content
     if (!fs.existsSync(tempPath)) {
       throw new Error(`Failed to create temporary config file at ${tempPath}`);
     }
-    
+
     const stats = fs.statSync(tempPath);
     if (stats.size === 0) {
       throw new Error(`Temporary config file at ${tempPath} is empty`);
     }
-    
+
     // On Windows, rename fails if target exists.
     // Create a backup first so we can recover if the process crashes
     // between unlink and rename.
@@ -713,7 +716,7 @@ export class ConfigManager {
       } catch {
         // Best-effort backup
       }
-      
+
       // Retry loop for the unlink+rename to handle transient locks on Windows
       let renamed = false;
       for (let attempt = 0; attempt < 3 && !renamed; attempt++) {
@@ -729,7 +732,7 @@ export class ConfigManager {
           }
         }
       }
-      
+
       if (!renamed) {
         // Last resort: restore from backup and throw
         if (fs.existsSync(backupPath) && !fs.existsSync(this.configPath)) {
@@ -737,7 +740,7 @@ export class ConfigManager {
         }
         throw new Error(`Failed to save config to ${this.configPath} after retries`);
       }
-      
+
       // Clean up backup on success
       try { fs.unlinkSync(backupPath); } catch { /* ignore */ }
     } else {
