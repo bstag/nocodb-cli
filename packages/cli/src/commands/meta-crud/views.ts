@@ -8,7 +8,6 @@ import { Command } from "commander";
 import type { Container } from "../../container.js";
 import type { MetaService } from "../../services/meta-service.js";
 import type { ConfigManager } from "../../config/manager.js";
-import type { ViewType } from "@stagware/nocodb-sdk";
 import { parseJsonInput } from "../../utils/parsing.js";
 import { addOutputOptions, addJsonInputOptions } from "../helpers.js";
 import {
@@ -20,7 +19,6 @@ const VALID_VIEW_TYPES = ['grid', 'form', 'gallery', 'kanban', 'calendar'] as co
 type ValidViewType = typeof VALID_VIEW_TYPES[number];
 
 const VALID_API_VERSIONS = ['v2', 'v3'] as const;
-type ValidApiVersion = typeof VALID_API_VERSIONS[number];
 
 export function registerViewsCommands(program: Command, container: Container): void {
   const viewsCmd = program.command("views").description("Manage views")
@@ -71,9 +69,9 @@ Examples:
     viewsCmd.command("create").argument("tableId", "Table id")
       .option("--type <type>", "View type: grid, form, gallery, kanban, calendar (default: grid)")
       .option("--base-id <baseId>", "Base ID (required for v3)")
-      .option("--api-version <version>", "API Version (v2 or v3)", "v2")
+      .option("--api-version <version>", "API Version (v2 or v3)")
   )).action(
-    async (tableId: string, options: JsonInputOptions & OutputOptions & { type?: string; baseId?: string; apiVersion: string }) => {
+    async (tableId: string, options: JsonInputOptions & OutputOptions & { type?: string; baseId?: string; apiVersion?: string }) => {
       try {
         const { client } = resolveServices(container);
         const metaService = container.get<Function>("metaService")(client) as MetaService;
@@ -81,8 +79,8 @@ Examples:
 
         const body = await parseJsonInput(options.data, options.dataFile);
 
-        // Validate API Version
-        if (!VALID_API_VERSIONS.includes(options.apiVersion as any)) {
+        // Validate API Version (if provided)
+        if (options.apiVersion && !VALID_API_VERSIONS.includes(options.apiVersion as any)) {
           throw new Error(`Unsupported API version '${options.apiVersion}'. Supported versions: ${VALID_API_VERSIONS.join(', ')}`);
         }
 
@@ -92,6 +90,12 @@ Examples:
           throw new Error(`Unsupported view type '${rawType}'. Supported types: ${VALID_VIEW_TYPES.join(', ')}`);
         }
         const viewType = rawType as ValidViewType;
+
+        // Calendar views only exist in v3 — reject explicit v2 request
+        if (viewType === 'calendar' && options.apiVersion === 'v2') {
+          throw new Error("Calendar views require the v3 API. Use --api-version v3 or omit --api-version (calendar auto-selects v3).");
+        }
+
         const isV3 = options.apiVersion === 'v3' || viewType === 'calendar';
 
         let result;
