@@ -911,15 +911,15 @@ function attemptColumnTest(tableId, rowId, columnDef, sampleValue, report) {
       const candidates =
         columnDef.uidt === "SingleSelect"
           ? [
-              titles[0],
-              { title: titles[0] },
-              ids[0],
-            ]
+            titles[0],
+            { title: titles[0] },
+            ids[0],
+          ]
           : [
-              titles.slice(0, 2),
-              titles.slice(0, 2).map((t) => ({ title: t })),
-              ids.slice(0, 2),
-            ];
+            titles.slice(0, 2),
+            titles.slice(0, 2).map((t) => ({ title: t })),
+            ids.slice(0, 2),
+          ];
       let lastError;
       for (const candidate of candidates) {
         try {
@@ -1345,6 +1345,39 @@ async function main() {
     }
     report.views = { status: "failed", error: err.message || String(err) };
     console.log("Views tests failed:", report.views.error);
+  }
+
+  // =========================================================================
+  // NEW: Hybrid Views (Calendar) tests
+  // =========================================================================
+  console.log("Testing hybrid views (calendar)...");
+  try {
+    // 1. Implicit Base ID (via env/config)
+    const calTitle1 = `E2E_Cal_${timestamp}`;
+    const tmpCal1 = path.join(ROOT, "scripts", `cal1-${timestamp}.json`);
+    writeJson(tmpCal1, { title: calTitle1 });
+    // Manually run CLI to pass --type calendar
+    const outCal1 = runCli(["views", "create", primary.id, "--type", "calendar", "--data-file", tmpCal1, "--pretty"]);
+    const calView1 = jsonParseOrThrow(outCal1);
+    assert(calView1.id, "calendar view create (implicit baseId) should return id");
+    assert(calView1.type === "calendar", "view type should be calendar");
+
+    // 2. Explicit Base ID (via flag)
+    const calTitle2 = `E2E_Cal_Explicit_${timestamp}`;
+    const tmpCal2 = path.join(ROOT, "scripts", `cal2-${timestamp}.json`);
+    writeJson(tmpCal2, { title: calTitle2 });
+    const outCal2 = runCli(["views", "create", primary.id, "--type", "calendar", "--base-id", BASE_ID, "--data-file", tmpCal2, "--pretty"]);
+    const calView2 = jsonParseOrThrow(outCal2);
+    assert(calView2.id, "calendar view create (explicit baseId) should return id");
+
+    // Cleanup
+    try { deleteView(calView1.id); } catch { /* ignore */ }
+    try { deleteView(calView2.id); } catch { /* ignore */ }
+
+    report.hybridViews = { status: "passed" };
+  } catch (err) {
+    report.hybridViews = { status: "failed", error: err.message || String(err) };
+    console.log("Hybrid views tests failed:", report.hybridViews.error);
   }
 
   // =========================================================================

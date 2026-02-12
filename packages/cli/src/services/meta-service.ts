@@ -1,4 +1,4 @@
-import { NocoClient } from '@stagware/nocodb-sdk';
+import { NocoClient, v3 } from '@stagware/nocodb-sdk';
 import type {
   Base,
   Source,
@@ -49,6 +49,7 @@ import type {
  */
 export class MetaService {
   private client: NocoClient;
+  private metaApiV3: v3.MetaApiV3;
 
   /**
    * Creates a new MetaService instance.
@@ -57,6 +58,7 @@ export class MetaService {
    */
   constructor(client: NocoClient) {
     this.client = client;
+    this.metaApiV3 = new v3.MetaApiV3(client);
   }
 
   // ============================================================================
@@ -1015,6 +1017,18 @@ export class MetaService {
    */
   async createKanbanView(tableId: string, data: Partial<View>): Promise<View> {
     return this.client.request<View>('POST', `/api/v2/meta/tables/${tableId}/kanbans`, { body: data });
+  }
+
+  /**
+   * Creates a view in v3 (Unified endpoint).
+   * 
+   * @param baseId - Base ID
+   * @param tableId - Table ID
+   * @param view - View configuration
+   * @returns Created view
+   */
+  async createViewV3(baseId: string, tableId: string, view: Partial<v3.ViewV3> & { type: v3.ViewTypeV3; title: string }): Promise<v3.ViewV3> {
+    return this.metaApiV3.createView(baseId, tableId, view);
   }
 
   /**

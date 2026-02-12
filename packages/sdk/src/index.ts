@@ -100,6 +100,8 @@ export {
   ConflictError,
 } from "./errors.js";
 
+export * as v3 from "./v3/index.js";
+
 /**
  * Map of HTTP header names to values.
  */
@@ -287,7 +289,7 @@ export class NocoClient {
       if (isVerbose) {
         const duration = Date.now() - startTime;
         console.error(`[Timing] ${method} ${urlPath} failed after ${duration}ms`);
-        
+
         if (attemptCount > 1) {
           console.error(`[Retry] All ${attemptCount} attempts failed for ${method} ${urlPath}`);
         }
@@ -297,28 +299,28 @@ export class NocoClient {
       if (error instanceof FetchError) {
         const statusCode = error.response?.status;
         const responseData = error.data as ErrorResponse | undefined;
-        
+
         // Extract error message from response
-        const errorMessage = 
-          responseData?.msg || 
-          responseData?.message || 
-          responseData?.error || 
-          error.message || 
+        const errorMessage =
+          responseData?.msg ||
+          responseData?.message ||
+          responseData?.error ||
+          error.message ||
           'Request failed';
 
         // Map status codes to typed errors
         if (statusCode === 401 || statusCode === 403) {
           throw new AuthenticationError(errorMessage, statusCode, responseData);
         }
-        
+
         if (statusCode === 404) {
           throw new NotFoundError('Resource', errorMessage);
         }
-        
+
         if (statusCode === 409) {
           throw new ConflictError(errorMessage, responseData);
         }
-        
+
         if (statusCode === 400) {
           throw new ValidationError(errorMessage);
         }
@@ -504,7 +506,7 @@ export class MetaApi {
    * 
    * @param client - NocoClient instance for making HTTP requests
    */
-  constructor(private client: NocoClient) {}
+  constructor(private client: NocoClient) { }
 
   /**
    * Lists all bases accessible to the authenticated user.
@@ -1840,7 +1842,7 @@ export class MetaApi {
  * Provides methods for managing relationships between records in linked tables.
  */
 export class DataApi {
-  constructor(private client: NocoClient) {}
+  constructor(private client: NocoClient) { }
 
   /**
    * List linked records for a specific record and link field.
