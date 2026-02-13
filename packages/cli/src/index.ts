@@ -515,7 +515,7 @@ function shouldAutoRun(): boolean {
   }
 }
 
-if (shouldAutoRun()) {
+if ((import.meta as any).main || shouldAutoRun()) {
   bootstrap();
 }
 
