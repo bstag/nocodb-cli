@@ -21,9 +21,37 @@ jobs:
           cache: "npm"
           registry-url: "https://registry.npmjs.org"
 
-      # --- Install latest npm ---
+      # --- Install latest npm (>=11.5.1 required for OIDC trusted publishers) ---
       - name: Install latest npm
-        run: npm install -g npm@latest
+        run: |
+          npm install -g npm@latest
+          echo "npm version: $(npm --version)"
+
+      - name: Verify OIDC token availability
+        run: |
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL}" ] && [ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" ]; then
+            echo "✅ OIDC token available"
+            echo "Endpoint: ${ACTIONS_ID_TOKEN_REQUEST_URL}"
+          else
+            echo "❌ OIDC token NOT available"
+            echo "Check workflow permissions include 'id-token: write'"
+            exit 1
+          fi
+
+      - name: Verify repository configuration
+        run: |
+          echo "Checking repository consistency..."
+          GIT_REPO=$(git remote get-url origin | sed 's/.*github.com[/:]//; s/.git$//')
+          echo "Git remote: $GIT_REPO"
+          for pkg in packages/sdk/package.json packages/cli/package.json; do
+            PKG_REPO=$(node -e "console.log(require('./$pkg').repository?.url || '')" | sed 's|https://github.com/||; s|git+||; s|.git$||')
+            echo "$pkg repository.url: $PKG_REPO"
+            if [ "$GIT_REPO" != "$PKG_REPO" ]; then
+              echo "❌ Repository mismatch in $pkg!"
+              exit 1
+            fi
+          done
+          echo "✅ All repository URLs match"
 
       - name: Install dependencies
         run: npm ci
@@ -35,11 +63,11 @@ jobs:
         run: npm test
 
       - name: Publish SDK
-        run: npm publish --access public
+        run: npm publish --access public --verbose
         working-directory: packages/sdk
 
       - name: Publish CLI
-        run: npm publish --access public
+        run: npm publish --access public --verbose
         working-directory: packages/cli
 
       - uses: oven-sh/setup-bun@v1
