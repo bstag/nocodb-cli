@@ -553,7 +553,6 @@ export class ConfigManager {
 
       // Retry loop for the unlink+rename to handle transient locks on Windows
       let renamed = false;
-      const sleepBuf = new Int32Array(new SharedArrayBuffer(4));
       for (let attempt = 0; attempt < 3 && !renamed; attempt++) {
         try {
           // Only unlink if the target still exists (may have been
@@ -564,9 +563,12 @@ export class ConfigManager {
           fs.renameSync(tempPath, this.configPath);
           renamed = true;
         } catch {
-          // Non-blocking pause before retry to let file locks release
+          // Synchronous sleep before retry to let file locks release.
+          // Atomics.wait is the most efficient synchronous delay in
+          // Node.js — it blocks without burning CPU (unlike a spin
+          // loop) and without spawning a child process.
           if (attempt < 2) {
-            Atomics.wait(sleepBuf, 0, 0, 50);
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
           }
         }
       }
